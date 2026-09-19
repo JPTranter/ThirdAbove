@@ -4,7 +4,10 @@
 
 [![Build and Release Android APK](https://github.com/JPTranter/ThirdAbove/actions/workflows/build_and_release.yml/badge.svg)](https://github.com/JPTranter/ThirdAbove/actions/workflows/build_and_release.yml)
 [![Download APK](https://img.shields.io/badge/Download-Android%20APK-brightgreen)](https://github.com/JPTranter/ThirdAbove/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![User Guide](https://img.shields.io/badge/Documentation-User%20Guide-blue)](USER_GUIDE.md)
+
+**ThirdAbove** is a native Android vocal harmony trainer designed to help singers master two-part harmonies (such as 3rds, 4ths, 5ths, and 6ths) alongside a lead voice without getting magnetically pulled into singing the melody. Using real-time monophonic pitch tracking (YIN algorithm) and binaural stereo spatial separation (lead voice in the left ear, target harmony in the right ear), ThirdAbove trains your ear and voice to lock into resonant intervals with precision and confidence.
 
 📖 **New to ThirdAbove? Check out the [Complete User Guide](USER_GUIDE.md)** for step-by-step setup, headphone recommendations, vocal range configurations, and duet practice strategies.
 
@@ -58,3 +61,10 @@ Test the harmony engine and microphone pitch detector right in your browser with
 - **Audio Input:** `AudioRecord` background stream with RMS noise gate
 - **Security:** Pre-commit & CI secret protection powered by **Gitleaks**
 - **CI/CD:** Automated GitHub Actions APK build and release pipeline
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) © 2026 Jason Tranter.
+
