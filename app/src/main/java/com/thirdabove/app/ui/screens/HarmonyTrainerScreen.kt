@@ -4,8 +4,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,11 +27,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,7 +38,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -47,12 +48,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -67,17 +70,23 @@ import com.thirdabove.app.domain.HarmonyInterval
 import com.thirdabove.app.domain.HarmonyScorer
 import com.thirdabove.app.domain.HarmonyStatus
 import com.thirdabove.app.domain.VocalRange
-import com.thirdabove.app.ui.theme.CardViolet
 import com.thirdabove.app.ui.theme.CoralPink
-import com.thirdabove.app.ui.theme.DeepViolet
+import com.thirdabove.app.ui.theme.GaugeBg
+import com.thirdabove.app.ui.theme.GaugeRingAmber
+import com.thirdabove.app.ui.theme.GaugeRingGreen
 import com.thirdabove.app.ui.theme.GoldenAmber
-import com.thirdabove.app.ui.theme.PitchFlatBlue
 import com.thirdabove.app.ui.theme.PitchInTuneGreen
-import com.thirdabove.app.ui.theme.PitchSharpOrange
 import com.thirdabove.app.ui.theme.ResonantTeal
 import com.thirdabove.app.ui.theme.SoftWhite
+import com.thirdabove.app.ui.theme.StudioBlack
+import com.thirdabove.app.ui.theme.StudioCardBg
+import com.thirdabove.app.ui.theme.StudioCardBorder
 import com.thirdabove.app.ui.theme.TextMuted
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun HarmonyTrainerScreen() {
@@ -90,7 +99,6 @@ fun HarmonyTrainerScreen() {
     val pitchState by tracker.pitchState.collectAsState()
     val isTonePlaying by synth.isPlayingState.collectAsState()
 
-    // Mute microphone processing while reference tones are playing to prevent self-feedback!
     LaunchedEffect(isTonePlaying) {
         tracker.isMuted = isTonePlaying
     }
@@ -125,9 +133,7 @@ fun HarmonyTrainerScreen() {
         }
     }
 
-    // Timer and re-orientation loop:
-    // 1. If in tune, accumulates 2 seconds to advance to next note.
-    // 2. If singing but NOT in tune for 2 consecutive seconds, replays Stereo Duet (2s) to reorient user!
+    // Auto-advance and fail-safe reorientation loop
     LaunchedEffect(isListening, pitchState.isVoiced, isLockedIn, rootMidi, targetMidi, isTonePlaying) {
         if (!isListening || !pitchState.isVoiced || isTonePlaying) {
             lockInMs = 0L
@@ -138,10 +144,9 @@ fun HarmonyTrainerScreen() {
             val start = System.currentTimeMillis() - lockInMs
             while (isLockedIn && (System.currentTimeMillis() - start) < 2000L) {
                 lockInMs = System.currentTimeMillis() - start
-                kotlinx.coroutines.delay(50)
+                delay(50)
             }
             if (isLockedIn && (System.currentTimeMillis() - start) >= 2000L) {
-                // Mastered! Advance to next note and play new note in stereo duet
                 lockInMs = 0L
                 melodyIndex = (melodyIndex + 1) % melodySequence.size
                 val nextRoot = melodySequence[melodyIndex]
@@ -153,28 +158,25 @@ fun HarmonyTrainerScreen() {
                 )
             }
         } else {
-            // User is singing but out of tune. Track 2 seconds of out-of-tune struggle
             lockInMs = 0L
             val outOfTuneStart = System.currentTimeMillis()
             while (!isLockedIn && pitchState.isVoiced && (System.currentTimeMillis() - outOfTuneStart) < 2000L) {
-                kotlinx.coroutines.delay(50)
+                delay(50)
             }
-            // If still out of tune after 2 seconds, play both notes simultaneously (2s) to reorient ear!
             if (!isLockedIn && pitchState.isVoiced && (System.currentTimeMillis() - outOfTuneStart) >= 2000L) {
                 synth.playDuet(
                     MusicMath.midiToFrequency(rootMidi),
                     MusicMath.midiToFrequency(targetMidi),
                     durationMs = 2000
                 )
-                // Brief pause so it doesn't immediately repeat
-                kotlinx.coroutines.delay(1000)
+                delay(1000)
             }
         }
     }
 
     val evaluation = remember(pitchState, rootMidi, targetMidi, isTonePlaying) {
         if (isTonePlaying) {
-            HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "🎧 Playing reference tone...")
+            HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "Playing reference tone...")
         } else if (!pitchState.isVoiced) {
             HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "Sing your harmony note...")
         } else {
@@ -187,7 +189,6 @@ fun HarmonyTrainerScreen() {
         }
     }
 
-    // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -207,76 +208,71 @@ fun HarmonyTrainerScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DeepViolet)
-            .padding(16.dp),
+            .background(StudioBlack)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Header
+        // App Header Matching Mockup
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 12.dp),
+                .padding(vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(
-                    text = "ThirdAbove 🎶",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = SoftWhite
-                )
-                Text(
-                    text = "Live Harmony & Duet Trainer",
-                    fontSize = 12.sp,
-                    color = GoldenAmber
-                )
-            }
+            Text(
+                text = "ThirdAbove",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = SoftWhite
+            )
 
-            IconButton(
-                onClick = {
-                    if (isListening) {
-                        tracker.stopListening()
-                        isListening = false
-                    } else {
-                        val hasPermission = ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.RECORD_AUDIO
-                        ) == PackageManager.PERMISSION_GRANTED
-
-                        if (hasPermission) {
-                            isListening = true
-                            tracker.startListening(scope)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(
+                    onClick = {
+                        if (isListening) {
+                            tracker.stopListening()
+                            isListening = false
                         } else {
-                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            val hasPermission = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            if (hasPermission) {
+                                isListening = true
+                                tracker.startListening(scope)
+                            } else {
+                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                            }
                         }
-                    }
-                },
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(if (isListening) CoralPink else CardViolet)
-            ) {
+                    },
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(if (isListening) PitchInTuneGreen else StudioCardBg)
+                ) {
+                    Icon(
+                        imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicOff,
+                        contentDescription = "Toggle Mic",
+                        tint = if (isListening) Color.Black else SoftWhite,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
                 Icon(
-                    imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicOff,
-                    contentDescription = "Toggle Mic",
-                    tint = SoftWhite
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = null,
+                    tint = TextMuted
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Vocal Range Picker
-        Text(
-            text = "YOUR VOCAL RANGE",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TextMuted,
-            modifier = Modifier.fillMaxWidth()
-        )
-
         Spacer(modifier = Modifier.height(4.dp))
 
+        // Vocal Range Selection Pills (Matching Mockup)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
@@ -285,37 +281,32 @@ fun HarmonyTrainerScreen() {
                 val isSelected = range == selectedRange
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) GoldenAmber else CardViolet)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isSelected) GoldenAmber else StudioCardBg)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) GoldenAmber else StudioCardBorder,
+                            shape = RoundedCornerShape(20.dp)
+                        )
                         .clickable {
                             selectedRange = range
                             melodyIndex = 0
                         }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
                 ) {
                     Text(
                         text = range.displayName,
                         fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         color = if (isSelected) Color.Black else SoftWhite
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Interval Carousel Selection
-        Text(
-            text = "CHOOSE HARMONY INTERVAL",
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TextMuted,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
+        // Interval Selection Pills (Matching Mockup with Outline Style)
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
@@ -324,16 +315,21 @@ fun HarmonyTrainerScreen() {
                 val isSelected = interval == selectedInterval
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) CoralPink else CardViolet)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(if (isSelected) CoralPink else Color.Transparent)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) CoralPink else CoralPink.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(20.dp)
+                        )
                         .clickable { selectedInterval = interval }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
                 ) {
                     Text(
                         text = interval.displayName,
-                        fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = SoftWhite
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) Color.White else CoralPink
                     )
                 }
             }
@@ -341,75 +337,261 @@ fun HarmonyTrainerScreen() {
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Harmony Dual-Card Display (Stereo: Left Ear Lead | Right Ear Harmony)
+        // Dual Cards (Lead Note & Your Harmony with waveforms and L/R labels)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Root Lead Note (Left Channel 🎧)
+            // Lead Note Card (Amber)
             Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = CardViolet),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        scope.launch {
+                            synth.playTone(MusicMath.midiToFrequency(rootMidi), 4000, pan = -1.0f)
+                        }
+                    },
+                colors = CardDefaults.cardColors(containerColor = StudioCardBg),
+                border = androidx.compose.foundation.BorderStroke(1.dp, GoldenAmber.copy(alpha = 0.7f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(14.dp)
                 ) {
-                    Text("LEAD NOTE", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
-                    Text(rootName, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = GoldenAmber)
-                    Text("Left Ear 🎧", fontSize = 11.sp, color = GoldenAmber)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                synth.playTone(MusicMath.midiToFrequency(rootMidi), 4000, pan = -1.0f)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = GoldenAmber),
-                        shape = RoundedCornerShape(10.dp)
+                    Text("Lead Note", fontSize = 12.sp, color = TextMuted)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.VolumeUp, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Play Left (4s)", fontSize = 10.sp)
+                        Text(rootName, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = SoftWhite)
+                        // Stylized soundwave line
+                        Canvas(modifier = Modifier.size(width = 36.dp, height = 18.dp)) {
+                            drawLine(
+                                color = GoldenAmber,
+                                start = Offset(0f, size.height * 0.5f),
+                                end = Offset(size.width * 0.4f, size.height * 0.1f),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                            drawLine(
+                                color = GoldenAmber,
+                                start = Offset(size.width * 0.4f, size.height * 0.1f),
+                                end = Offset(size.width * 0.7f, size.height * 0.9f),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                            drawLine(
+                                color = GoldenAmber,
+                                start = Offset(size.width * 0.7f, size.height * 0.9f),
+                                end = Offset(size.width, size.height * 0.5f),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                        }
                     }
+                    Text("Left ear", fontSize = 11.sp, color = GoldenAmber)
                 }
             }
 
-            // Target Harmony Note (Right Channel 🎧)
+            // Your Harmony Card (Teal)
             Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = CardViolet),
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable {
+                        scope.launch {
+                            synth.playTone(MusicMath.midiToFrequency(targetMidi), 4000, pan = 1.0f)
+                        }
+                    },
+                colors = CardDefaults.cardColors(containerColor = StudioCardBg),
+                border = androidx.compose.foundation.BorderStroke(1.dp, ResonantTeal.copy(alpha = 0.7f)),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier.padding(14.dp)
                 ) {
-                    Text("YOUR HARMONY", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
-                    Text(targetName, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = ResonantTeal)
-                    Text("Right Ear 🎧", fontSize = 11.sp, color = ResonantTeal)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            scope.launch {
-                                synth.playTone(MusicMath.midiToFrequency(targetMidi), 4000, pan = 1.0f)
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = ResonantTeal),
-                        shape = RoundedCornerShape(10.dp)
+                    Text("Your Harmony", fontSize = 12.sp, color = TextMuted)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Hearing, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Play Right (4s)", fontSize = 10.sp)
+                        Text(targetName, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = SoftWhite)
+                        // Stylized soundwave line
+                        Canvas(modifier = Modifier.size(width = 36.dp, height = 18.dp)) {
+                            drawLine(
+                                color = ResonantTeal,
+                                start = Offset(0f, size.height * 0.5f),
+                                end = Offset(size.width * 0.35f, size.height * 0.85f),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                            drawLine(
+                                color = ResonantTeal,
+                                start = Offset(size.width * 0.35f, size.height * 0.85f),
+                                end = Offset(size.width * 0.75f, size.height * 0.15f),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                            drawLine(
+                                color = ResonantTeal,
+                                start = Offset(size.width * 0.75f, size.height * 0.15f),
+                                end = Offset(size.width, size.height * 0.5f),
+                                strokeWidth = 3f,
+                                cap = StrokeCap.Round
+                            )
+                        }
                     }
+                    Text("Right ear", fontSize = 11.sp, color = ResonantTeal)
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Play Both as Stereo Duet (Lead L + Harmony R)
+        // Circular Pitch Dial Gauge (Exact Match to Mockup)
+        Box(
+            modifier = Modifier
+                .size(240.dp)
+                .clip(CircleShape)
+                .background(GaugeBg)
+                .border(
+                    width = 2.dp,
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            GoldenAmber,
+                            PitchInTuneGreen,
+                            ResonantTeal,
+                            GoldenAmber
+                        )
+                    ),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            // Dial tick marks and needle
+            val animatedCents by animateFloatAsState(
+                targetValue = evaluation.centsDiff.coerceIn(-50f, 50f),
+                animationSpec = tween(durationMillis = 100),
+                label = "centsNeedle"
+            )
+
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                val radius = size.width * 0.40f
+
+                // Draw tick marks
+                for (i in -10..10) {
+                    val angleDeg = 270f + (i * 7.5f)
+                    val angleRad = angleDeg * (PI.toFloat() / 180f)
+                    val isCenter = i == 0
+                    val tickLen = if (isCenter) 14f else 8f
+                    val strokeW = if (isCenter) 3f else 1.5f
+                    val tickColor = if (isCenter) PitchInTuneGreen else Color.White.copy(alpha = 0.25f)
+
+                    val startX = cx + (radius - tickLen) * cos(angleRad)
+                    val startY = cy + (radius - tickLen) * sin(angleRad)
+                    val endX = cx + radius * cos(angleRad)
+                    val endY = cy + radius * sin(angleRad)
+
+                    drawLine(
+                        color = tickColor,
+                        start = Offset(startX, startY),
+                        end = Offset(endX, endY),
+                        strokeWidth = strokeW,
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                // Needle pointer
+                val needleAngleDeg = 270f + (animatedCents / 50f * 75f)
+                val needleAngleRad = needleAngleDeg * (PI.toFloat() / 180f)
+                val needleLength = radius * 0.75f
+
+                val nEndX = cx + needleLength * cos(needleAngleRad)
+                val nEndY = cy + needleLength * sin(needleAngleRad)
+
+                drawLine(
+                    color = PitchInTuneGreen,
+                    start = Offset(cx, cy),
+                    end = Offset(nEndX, nEndY),
+                    strokeWidth = 5f,
+                    cap = StrokeCap.Round
+                )
+            }
+
+            // Central Sung Note and Status Badge Text
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = if (pitchState.isVoiced) pitchState.noteName else "--",
+                    fontSize = 44.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = SoftWhite
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = if (evaluation.status == HarmonyStatus.IN_TUNE) "Locked in\nHarmony!" else evaluation.feedbackMessage,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = when (evaluation.status) {
+                        HarmonyStatus.IN_TUNE -> PitchInTuneGreen
+                        HarmonyStatus.CLOSE -> GoldenAmber
+                        HarmonyStatus.PULLED_TO_ROOT -> CoralPink
+                        HarmonyStatus.WRONG_PITCH -> CoralPink
+                        HarmonyStatus.SILENT -> TextMuted
+                    },
+                    textAlign = TextAlign.Center,
+                    lineHeight = 18.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Pitch Lock-in 2.0s Progress Bar (Matching Mockup)
+        Column(
+            modifier = Modifier.fillMaxWidth(0.85f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Pitch lock-in 2.0s",
+                fontSize = 12.sp,
+                color = TextMuted,
+                fontWeight = FontWeight.Medium
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(StudioCardBg)
+            ) {
+                val progressFraction = (lockInMs / 2000f).coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progressFraction)
+                        .height(8.dp)
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(GoldenAmber, CoralPink, PitchInTuneGreen)
+                            )
+                        )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Play Stereo Duet Button
         Button(
             onClick = {
                 scope.launch {
@@ -420,142 +602,25 @@ fun HarmonyTrainerScreen() {
                     )
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B236E)),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth().height(42.dp)
+            colors = ButtonDefaults.buttonColors(containerColor = StudioCardBg),
+            border = androidx.compose.foundation.BorderStroke(1.dp, CoralPink.copy(alpha = 0.5f)),
+            shape = RoundedCornerShape(14.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp)
         ) {
             Icon(Icons.Default.Audiotrack, contentDescription = null, tint = CoralPink, modifier = Modifier.size(18.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text("Play Stereo Duet (L: Lead | R: Harmony)", fontSize = 12.sp, color = SoftWhite)
         }
 
-        Spacer(modifier = Modifier.height(18.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Real-Time Pitch Gauge & Live Feedback
+        // Bottom Tip Card (Matching Mockup with music note icon badge)
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = CardViolet),
-            shape = RoundedCornerShape(20.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "YOUR SUNG PITCH",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextMuted
-                )
-
-                Text(
-                    text = if (pitchState.isVoiced) pitchState.noteName else "--",
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = when (evaluation.status) {
-                        HarmonyStatus.IN_TUNE -> PitchInTuneGreen
-                        HarmonyStatus.CLOSE -> if (evaluation.centsDiff > 0) PitchSharpOrange else PitchFlatBlue
-                        HarmonyStatus.PULLED_TO_ROOT -> CoralPink
-                        HarmonyStatus.WRONG_PITCH -> CoralPink
-                        HarmonyStatus.SILENT -> SoftWhite
-                    }
-                )
-
-                if (pitchState.isVoiced) {
-                    Text(
-                        text = "${pitchState.frequencyHz.toInt()} Hz (${if (pitchState.centsDeviation >= 0) "+" else ""}${pitchState.centsDeviation.toInt()} cents)",
-                        fontSize = 13.sp,
-                        color = TextMuted
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Cents Gauge (-50 to +50 cents indicator)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(7.dp))
-                        .background(Color.White.copy(alpha = 0.08f))
-                ) {
-                    val normalizedProgress = ((evaluation.centsDiff.coerceIn(-50f, 50f) + 50f) / 100f)
-                    LinearProgressIndicator(
-                        progress = { normalizedProgress },
-                        modifier = Modifier.fillMaxSize(),
-                        color = when (evaluation.status) {
-                            HarmonyStatus.IN_TUNE -> PitchInTuneGreen
-                            HarmonyStatus.CLOSE -> GoldenAmber
-                            else -> CoralPink
-                        },
-                        trackColor = Color.Transparent
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // 2-second lock-in progress bar
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Pitch Lock-in (Hold 2s for next note)",
-                            fontSize = 11.sp,
-                            color = TextMuted
-                        )
-                        Text(
-                            text = "${String.format("%.1f", lockInMs / 1000f)}s / 2.0s",
-                            fontSize = 11.sp,
-                            color = if (isLockedIn) PitchInTuneGreen else TextMuted,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    LinearProgressIndicator(
-                        progress = { (lockInMs / 2000f).coerceIn(0f, 1f) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(RoundedCornerShape(4.dp)),
-                        color = PitchInTuneGreen,
-                        trackColor = Color.White.copy(alpha = 0.08f)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Feedback Badge
-                Text(
-                    text = if (isLockedIn && lockInMs >= 1900L) "🎉 Mastered! Moving to next note..." else evaluation.feedbackMessage,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = when (evaluation.status) {
-                        HarmonyStatus.IN_TUNE -> PitchInTuneGreen
-                        HarmonyStatus.PULLED_TO_ROOT -> CoralPink
-                        HarmonyStatus.CLOSE -> GoldenAmber
-                        else -> SoftWhite
-                    },
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Dual Practice Prompt
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(
-                containerColor = Brush.horizontalGradient(
-                    listOf(CoralPink.copy(alpha = 0.2f), ResonantTeal.copy(alpha = 0.2f))
-                ).let { Color(0xFF2B1D4B) }
-            ),
+            colors = CardDefaults.cardColors(containerColor = StudioCardBg),
+            border = androidx.compose.foundation.BorderStroke(1.dp, StudioCardBorder),
             shape = RoundedCornerShape(16.dp)
         ) {
             Row(
@@ -564,24 +629,30 @@ fun HarmonyTrainerScreen() {
                     .padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Hearing, contentDescription = null, tint = ResonantTeal)
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        "Duet Strategy Tip:",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SoftWhite
-                    )
-                    Text(
-                        "Don't listen to yourself louder than the lead. Blend your tone into hers like two strings of one guitar.",
-                        fontSize = 12.sp,
-                        color = TextMuted
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.08f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Audiotrack,
+                        contentDescription = null,
+                        tint = GoldenAmber,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Tip: Focus on holding the note steady for the interval to lock.",
+                    fontSize = 12.sp,
+                    color = SoftWhite.copy(alpha = 0.9f),
+                    lineHeight = 16.sp
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
