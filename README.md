@@ -13,12 +13,15 @@
 
 ---
 
-## 📱 App Screenshots
+## 📱 App Icon & Screenshots
 
 <p align="center">
-  <img src="docs/images/splash_screen.jpg" width="360" alt="ThirdAbove Splash Screen" />
+  <img src="docs/images/app_icon.jpg" width="180" style="border-radius: 36px;" alt="ThirdAbove Modern App Icon" />
+</p>
+<p align="center">
+  <img src="docs/images/splash_screen.jpg" width="340" alt="ThirdAbove Splash Screen" />
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/images/trainer_screen.jpg" width="360" alt="ThirdAbove Live Harmony Trainer UI" />
+  <img src="docs/images/trainer_screen.jpg" width="340" alt="ThirdAbove Live Harmony Trainer UI" />
 </p>
 
 ---
