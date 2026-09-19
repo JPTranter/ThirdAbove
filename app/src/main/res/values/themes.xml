@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.ThirdAbove" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#1A102F</item>
+        <item name="android:navigationBarColor">#1A102F</item>
+    </style>
+</resources>

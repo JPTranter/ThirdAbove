@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThirdAbove — Duet Harmony Trainer</title>
+  <style>
+    :root {
+      --bg: #160E2E;
+      --card: #241945;
+      --coral: #FF5E7E;
+      --amber: #FFB03A;
+      --teal: #00D2B4;
+      --green: #10B981;
+      --text: #F1F0F5;
+      --muted: #A59FB5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; justify-content: center; min-height: 100vh; padding: 20px 10px; }
+    .container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 16px; }
+    
+    .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .title { font-size: 24px; font-weight: 800; background: linear-gradient(45deg, var(--coral), var(--amber)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { font-size: 13px; color: var(--muted); }
+    
+    .btn { cursor: pointer; border: none; border-radius: 12px; font-weight: 600; transition: transform 0.1s, opacity 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-mic { padding: 10px 16px; background: var(--coral); color: white; border-radius: 24px; font-size: 14px; }
+    .btn-mic.recording { background: var(--teal); }
+
+    .interval-bar { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .interval-chip { padding: 8px 14px; background: var(--card); border-radius: 20px; font-size: 13px; white-space: nowrap; cursor: pointer; border: 1px solid transparent; }
+    .interval-chip.active { background: var(--coral); color: white; font-weight: bold; }
+
+    .dual-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { background: var(--card); border-radius: 16px; padding: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
+    .card-label { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+    .note-val { font-size: 32px; font-weight: 800; margin: 4px 0; }
+    .lead-val { color: var(--amber); }
+    .harmony-val { color: var(--teal); }
+    .btn-tone { width: 100%; margin-top: 10px; padding: 8px 0; border-radius: 10px; background: rgba(255,255,255,0.1); color: var(--text); font-size: 12px; }
+    .btn-tone:hover { background: rgba(255,255,255,0.2); }
+
+    .feedback-card { background: var(--card); border-radius: 20px; padding: 24px; text-align: center; border: 1px solid rgba(255,255,255,0.06); }
+    .sung-note { font-size: 56px; font-weight: 900; margin: 10px 0; }
+    .sung-hz { font-size: 14px; color: var(--muted); }
+    
+    .gauge-container { margin: 18px 0 10px 0; background: rgba(255,255,255,0.08); height: 12px; border-radius: 6px; position: relative; overflow: hidden; }
+    .gauge-needle { height: 100%; width: 6px; background: var(--teal); position: absolute; left: 50%; transform: translateX(-50%); transition: left 0.1s ease-out; }
+    .gauge-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255,255,255,0.4); transform: translateX(-50%); }
+
+    .status-badge { font-size: 16px; font-weight: 700; margin-top: 10px; }
+    .tip-box { background: rgba(255,94,126,0.12); border-left: 4px solid var(--coral); padding: 12px 14px; border-radius: 8px; font-size: 13px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <div class="title">ThirdAbove 🎶</div>
+      <div class="subtitle">Duet & Vocal Harmony Trainer</div>
+    </div>
+    <button id="micBtn" class="btn btn-mic">Start Mic</button>
+  </div>
+
+  <div class="card-label">Select Harmony Interval</div>
+  <div class="interval-bar" id="intervalContainer">
+    <div class="interval-chip" data-semi="0">Unison (0)</div>
+    <div class="interval-chip" data-semi="3">Minor 3rd (+3)</div>
+    <div class="interval-chip active" data-semi="4">Major 3rd (+4)</div>
+    <div class="interval-chip" data-semi="5">Perfect 4th (+5)</div>
+    <div class="interval-chip" data-semi="7">Perfect 5th (+7)</div>
+    <div class="interval-chip" data-semi="9">Major 6th (+9)</div>
+  </div>
+
+  <div class="dual-cards">
+    <div class="card">
+      <div class="card-label">Lead (Wife's Voice)</div>
+      <div id="leadNote" class="note-val lead-val">C4</div>
+      <div class="card-label">Root Melody</div>
+      <button id="playLeadBtn" class="btn btn-tone">▶ Play Lead</button>
+    </div>
+    <div class="card">
+      <div class="card-label">Your Harmony</div>
+      <div id="targetNote" class="note-val harmony-val">E4</div>
+      <div class="card-label">+4 Semitones</div>
+      <button id="playTargetBtn" class="btn btn-tone">▶ Hear Target</button>
+    </div>
+  </div>
+
+  <div class="feedback-card">
+    <div class="card-label">Your Sung Pitch</div>
+    <div id="sungNote" class="sung-note">--</div>
+    <div id="sungHz" class="sung-hz">Waiting for mic...</div>
+
+    <div class="gauge-container">
+      <div class="gauge-center"></div>
+      <div id="gaugeNeedle" class="gauge-needle"></div>
+    </div>
+
+    <div id="statusBadge" class="status-badge" style="color: var(--muted)">Press Start Mic to Sing</div>
+  </div>
+
+  <div class="tip-box">
+    <strong>Duet Tip:</strong> When singing harmony, your ear will naturally try to "fall" into the melody note. Keep your voice grounded on your target note (+3rd above) and listen to the chord resonate!
+  </div>
+</div>
+
+<script>
+  const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  let rootMidi = 60; // C4
+  let intervalSemi = 4; // Major 3rd
+  let audioCtx = null;
+  let isListening = false;
+  let micStream = null;
+  let analyser = null;
+  let buf = new Float32Array(2048);
+
+  function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+  function freqToMidi(f) { return 69 + 12 * Math.log2(f / 440); }
+  function midiToNoteName(m) {
+    const name = NOTE_NAMES[((m % 12) + 12) % 12];
+    const oct = Math.floor(m / 12) - 1;
+    return name + oct;
+  }
+
+  function updateCards() {
+    const targetMidi = rootMidi + intervalSemi;
+    document.getElementById('leadNote').innerText = midiToNoteName(rootMidi);
+    document.getElementById('targetNote').innerText = midiToNoteName(targetMidi);
+  }
+
+  document.querySelectorAll('.interval-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.interval-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      intervalSemi = parseInt(chip.getAttribute('data-semi'));
+      updateCards();
+    });
+  });
+
+  function playTone(freq) {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+    
+    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1.25);
+  }
+
+  document.getElementById('playLeadBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi)));
+  document.getElementById('playTargetBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi + intervalSemi)));
+
+  // Autocorrelation pitch detection
+  function autoCorrelate(buf, sampleRate) {
+    let SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.015) return -1; // noise gate
+
+    let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) {
+      if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+    }
+    for (let i = 1; i < SIZE / 2; i++) {
+      if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+    }
+    buf = buf.slice(r1, r2);
+    SIZE = buf.length;
+
+    let c = new Array(SIZE).fill(0);
+    for (let i = 0; i < SIZE; i++) {
+      for (let j = 0; j < SIZE - i; j++) c[i] = c[i] + buf[j] * buf[j + i];
+    }
+
+    let d = 0;
+    while (c[d] > c[d + 1]) d++;
+    let maxval = -1, maxpos = -1;
+    for (let i = d; i < SIZE; i++) {
+      if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+    }
+    let T0 = maxpos;
+    return sampleRate / T0;
+  }
+
+  function processPitch() {
+    if (!isListening) return;
+    analyser.getFloatTimeDomainData(buf);
+    const pitch = autoCorrelate(buf, audioCtx.sampleRate);
+    
+    const sungNoteEl = document.getElementById('sungNote');
+    const sungHzEl = document.getElementById('sungHz');
+    const statusEl = document.getElementById('statusBadge');
+    const needle = document.getElementById('gaugeNeedle');
+    const targetMidi = rootMidi + intervalSemi;
+
+    if (pitch !== -1 && pitch > 65 && pitch < 1200) {
+      const exactMidi = freqToMidi(pitch);
+      const roundedMidi = Math.round(exactMidi);
+      const cents = Math.round((exactMidi - roundedMidi) * 100);
+      const noteName = midiToNoteName(roundedMidi);
+
+      sungNoteEl.innerText = noteName;
+      sungHzEl.innerText = `${Math.round(pitch)} Hz (${cents >= 0 ? '+' : ''}${cents} cents)`;
+
+      // Evaluation
+      if (roundedMidi === rootMidi && intervalSemi !== 0) {
+        statusEl.innerText = "Pulled to Lead! Sing Higher!";
+        statusEl.style.color = "#FF5E7E";
+      } else {
+        const diff = (roundedMidi - targetMidi) * 100 + cents;
+        const needlePos = Math.max(5, Math.min(95, 50 + (diff / 50) * 45));
+        needle.style.left = `${needlePos}%`;
+
+        if (Math.abs(diff) <= 25) {
+          statusEl.innerText = "Locked in Harmony! ✨";
+          statusEl.style.color = "#10B981";
+          needle.style.background = "#10B981";
+        } else if (Math.abs(diff) <= 45) {
+          statusEl.innerText = diff > 0 ? "Slightly Sharp" : "Slightly Flat";
+          statusEl.style.color = "#FFB03A";
+          needle.style.background = "#FFB03A";
+        } else {
+          statusEl.innerText = diff > 0 ? "Too High" : "Too Low";
+          statusEl.style.color = "#FF5E7E";
+          needle.style.background = "#FF5E7E";
+        }
+      }
+    } else {
+      sungNoteEl.innerText = "--";
+      sungHzEl.innerText = "Listening for your voice...";
+      statusEl.innerText = "Sing your harmony note...";
+      statusEl.style.color = "var(--muted)";
+    }
+
+    requestAnimationFrame(processPitch);
+  }
+
+  document.getElementById('micBtn').addEventListener('click', async () => {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+    const btn = document.getElementById('micBtn');
+    if (!isListening) {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioCtx.createMediaStreamSource(micStream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        isListening = true;
+        btn.innerText = "Stop Mic";
+        btn.classList.add('recording');
+        processPitch();
+      } catch (err) {
+        alert("Microphone permission is needed: " + err.message);
+      }
+    } else {
+      isListening = false;
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
+      btn.innerText = "Start Mic";
+      btn.classList.remove('recording');
+      document.getElementById('sungNote').innerText = "--";
+      document.getElementById('sungHz').innerText = "Mic stopped";
+    }
+  });
+
+  updateCards();
+</script>
+</body>
+</html>
