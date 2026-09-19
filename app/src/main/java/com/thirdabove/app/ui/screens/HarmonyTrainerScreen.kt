@@ -86,16 +86,50 @@ fun HarmonyTrainerScreen() {
     val pitchState by tracker.pitchState.collectAsState()
 
     var isListening by remember { mutableStateOf(false) }
-    var selectedInterval by remember { mutableStateOf(HarmonyInterval.MAJOR_THIRD) }
-    var rootMidi by remember { mutableStateOf(60) } // Middle C (C4)
+    val melodySequence = remember { listOf(60, 62, 64, 65, 67, 69, 67, 65, 64, 62, 60) } // C4, D4, E4, F4, G4, A4...
+    var melodyIndex by remember { mutableStateOf(0) }
+    val rootMidi = melodySequence[melodyIndex]
 
     val targetMidi = rootMidi + selectedInterval.semitones
-    val rootName = remember(rootMidi) { "C4" }
+    val noteNames = remember { arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B") }
+    val rootName = remember(rootMidi) {
+        val name = noteNames[((rootMidi % 12) + 12) % 12]
+        val oct = (rootMidi / 12) - 1
+        "$name$oct"
+    }
     val targetName = remember(targetMidi) {
-        val noteNames = arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
         val name = noteNames[((targetMidi % 12) + 12) % 12]
         val oct = (targetMidi / 12) - 1
         "$name$oct"
+    }
+
+    var lockInMs by remember { mutableStateOf(0L) }
+    val isLockedIn = remember(pitchState, rootMidi, targetMidi) {
+        if (!pitchState.isVoiced) false
+        else {
+            val eval = HarmonyScorer.evaluate(pitchState.midiNote, pitchState.centsDeviation, rootMidi, targetMidi)
+            eval.status == HarmonyStatus.IN_TUNE
+        }
+    }
+
+    // Auto-advance after 2 seconds (2000ms) of locked-in pitch
+    LaunchedEffect(isLockedIn) {
+        if (isLockedIn) {
+            val start = System.currentTimeMillis()
+            while (isLockedIn && (System.currentTimeMillis() - start) < 2000L) {
+                lockInMs = System.currentTimeMillis() - start
+                kotlinx.coroutines.delay(50)
+            }
+            if (isLockedIn && (System.currentTimeMillis() - start) >= 2000L) {
+                // Mastered! Advance to next note and play the new lead tone
+                lockInMs = 0L
+                melodyIndex = (melodyIndex + 1) % melodySequence.size
+                val nextRoot = melodySequence[melodyIndex]
+                synth.playTone(MusicMath.midiToFrequency(nextRoot), 4000)
+            }
+        } else {
+            lockInMs = 0L
+        }
     }
 
     val evaluation = remember(pitchState, rootMidi, targetMidi) {
@@ -231,7 +265,7 @@ fun HarmonyTrainerScreen() {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Root Lead Note (Wife's Voice)
+            // Root Lead Note
             Card(
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = CardViolet),
@@ -248,7 +282,7 @@ fun HarmonyTrainerScreen() {
                     Button(
                         onClick = {
                             scope.launch {
-                                synth.playTone(MusicMath.midiToFrequency(rootMidi), 1500)
+                                synth.playTone(MusicMath.midiToFrequency(rootMidi), 4000)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = GoldenAmber),
@@ -256,7 +290,7 @@ fun HarmonyTrainerScreen() {
                     ) {
                         Icon(Icons.Default.VolumeUp, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Play Lead", fontSize = 11.sp)
+                        Text("Play Lead (4s)", fontSize = 10.sp)
                     }
                 }
             }
@@ -278,7 +312,7 @@ fun HarmonyTrainerScreen() {
                     Button(
                         onClick = {
                             scope.launch {
-                                synth.playTone(MusicMath.midiToFrequency(targetMidi), 1500)
+                                synth.playTone(MusicMath.midiToFrequency(targetMidi), 4000)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ResonantTeal),
@@ -286,7 +320,7 @@ fun HarmonyTrainerScreen() {
                     ) {
                         Icon(Icons.Default.Hearing, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Hear Target", fontSize = 11.sp)
+                        Text("Hear Target (4s)", fontSize = 10.sp)
                     }
                 }
             }
@@ -357,11 +391,45 @@ fun HarmonyTrainerScreen() {
                     )
                 }
 
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // 2-second lock-in progress bar
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Pitch Lock-in (Hold 2s for next note)",
+                            fontSize = 11.sp,
+                            color = TextMuted
+                        )
+                        Text(
+                            text = "${String.format("%.1f", lockInMs / 1000f)}s / 2.0s",
+                            fontSize = 11.sp,
+                            color = if (isLockedIn) PitchInTuneGreen else TextMuted,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    LinearProgressIndicator(
+                        progress = { (lockInMs / 2000f).coerceIn(0f, 1f) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
+                        color = PitchInTuneGreen,
+                        trackColor = Color.White.copy(alpha = 0.08f)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Feedback Badge
                 Text(
-                    text = evaluation.feedbackMessage,
+                    text = if (isLockedIn && lockInMs >= 1900L) "🎉 Mastered! Moving to next note..." else evaluation.feedbackMessage,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = when (evaluation.status) {

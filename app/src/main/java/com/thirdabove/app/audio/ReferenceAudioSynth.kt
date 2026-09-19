@@ -16,7 +16,7 @@ class ReferenceAudioSynth {
     private val sampleRate = 44100
     private var isPlaying = false
 
-    suspend fun playTone(freqHz: Float, durationMs: Int = 1200) = withContext(Dispatchers.IO) {
+    suspend fun playTone(freqHz: Float, durationMs: Int = 4000) = withContext(Dispatchers.IO) {
         stopTone()
         val numSamples = (sampleRate * (durationMs / 1000f)).toInt()
         val buffer = ShortArray(numSamples)

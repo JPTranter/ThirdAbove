@@ -76,16 +76,16 @@
 
   <div class="dual-cards">
     <div class="card">
-      <div class="card-label">Lead (Wife's Voice)</div>
+      <div class="card-label">Lead Note</div>
       <div id="leadNote" class="note-val lead-val">C4</div>
       <div class="card-label">Root Melody</div>
-      <button id="playLeadBtn" class="btn btn-tone">▶ Play Lead</button>
+      <button id="playLeadBtn" class="btn btn-tone">▶ Play Lead (4s)</button>
     </div>
     <div class="card">
       <div class="card-label">Your Harmony</div>
       <div id="targetNote" class="note-val harmony-val">E4</div>
       <div class="card-label">+4 Semitones</div>
-      <button id="playTargetBtn" class="btn btn-tone">▶ Hear Target</button>
+      <button id="playTargetBtn" class="btn btn-tone">▶ Hear Target (4s)</button>
     </div>
   </div>
 
@@ -99,6 +99,17 @@
       <div id="gaugeNeedle" class="gauge-needle"></div>
     </div>
 
+    <!-- 2-second lock-in progress bar -->
+    <div style="margin-top: 14px; text-align: left;">
+      <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px;">
+        <span>Pitch Lock-in (Hold 2s for next note)</span>
+        <span id="lockTimerText">0.0s / 2.0s</span>
+      </div>
+      <div style="background: rgba(255,255,255,0.08); height: 8px; border-radius: 4px; overflow: hidden;">
+        <div id="lockProgress" style="width: 0%; height: 100%; background: var(--green); transition: width 0.1s linear;"></div>
+      </div>
+    </div>
+
     <div id="statusBadge" class="status-badge" style="color: var(--muted)">Press Start Mic to Sing</div>
   </div>
 
@@ -109,7 +120,10 @@
 
 <script>
   const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  let rootMidi = 60; // C4
+  // Progressive melody sequence for drills
+  const MELODY_SEQUENCE = [60, 62, 64, 65, 67, 69, 67, 65, 64, 62, 60]; // C4, D4, E4, F4, G4, A4...
+  let melodyIdx = 0;
+  let rootMidi = MELODY_SEQUENCE[0]; 
   let intervalSemi = 4; // Major 3rd
   let audioCtx = null;
   let isListening = false;
@@ -117,12 +131,24 @@
   let analyser = null;
   let buf = new Float32Array(2048);
 
+  // Lock-in state
+  let lockStartTime = null;
+  const REQUIRED_LOCK_MS = 2000; // 2 seconds
+
   function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
   function freqToMidi(f) { return 69 + 12 * Math.log2(f / 440); }
   function midiToNoteName(m) {
     const name = NOTE_NAMES[((m % 12) + 12) % 12];
     const oct = Math.floor(m / 12) - 1;
     return name + oct;
+  }
+
+  function advanceToNextLeadNote() {
+    melodyIdx = (melodyIdx + 1) % MELODY_SEQUENCE.length;
+    rootMidi = MELODY_SEQUENCE[melodyIdx];
+    updateCards();
+    // Play the new lead note automatically to guide the singer
+    playTone(midiToFreq(rootMidi));
   }
 
   function updateCards() {
@@ -142,19 +168,23 @@
 
   function playTone(freq) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
     
+    // Play for 4.0 seconds with smooth envelopes
+    const duration = 4.0;
     gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+    gain.gain.exponentialRampToValueAtTime(0.35, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.35, audioCtx.currentTime + duration - 0.4);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
 
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 1.25);
+    osc.stop(audioCtx.currentTime + duration + 0.05);
   }
 
   document.getElementById('playLeadBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi)));
@@ -226,17 +256,45 @@
           statusEl.innerText = "Locked in Harmony! ✨";
           statusEl.style.color = "#10B981";
           needle.style.background = "#10B981";
-        } else if (Math.abs(diff) <= 45) {
-          statusEl.innerText = diff > 0 ? "Slightly Sharp" : "Slightly Flat";
-          statusEl.style.color = "#FFB03A";
-          needle.style.background = "#FFB03A";
+
+          // Track 2-second lock-in duration
+          const now = performance.now();
+          if (!lockStartTime) {
+            lockStartTime = now;
+          }
+          const elapsed = now - lockStartTime;
+          const progressPct = Math.min(100, (elapsed / REQUIRED_LOCK_MS) * 100);
+          document.getElementById('lockProgress').style.width = `${progressPct}%`;
+          document.getElementById('lockTimerText').innerText = `${(elapsed / 1000).toFixed(1)}s / 2.0s`;
+
+          if (elapsed >= REQUIRED_LOCK_MS) {
+            statusEl.innerText = "🎉 Mastered! Changing to next Lead note...";
+            lockStartTime = null;
+            document.getElementById('lockProgress').style.width = "0%";
+            document.getElementById('lockTimerText').innerText = "0.0s / 2.0s";
+            advanceToNextLeadNote();
+          }
         } else {
-          statusEl.innerText = diff > 0 ? "Too High" : "Too Low";
-          statusEl.style.color = "#FF5E7E";
-          needle.style.background = "#FF5E7E";
+          // Reset lock-in if out of tune
+          lockStartTime = null;
+          document.getElementById('lockProgress').style.width = "0%";
+          document.getElementById('lockTimerText').innerText = "0.0s / 2.0s";
+
+          if (Math.abs(diff) <= 45) {
+            statusEl.innerText = diff > 0 ? "Slightly Sharp" : "Slightly Flat";
+            statusEl.style.color = "#FFB03A";
+            needle.style.background = "#FFB03A";
+          } else {
+            statusEl.innerText = diff > 0 ? "Too High" : "Too Low";
+            statusEl.style.color = "#FF5E7E";
+            needle.style.background = "#FF5E7E";
+          }
         }
       }
     } else {
+      lockStartTime = null;
+      document.getElementById('lockProgress').style.width = "0%";
+      document.getElementById('lockTimerText').innerText = "0.0s / 2.0s";
       sungNoteEl.innerText = "--";
       sungHzEl.innerText = "Listening for your voice...";
       statusEl.innerText = "Sing your harmony note...";
