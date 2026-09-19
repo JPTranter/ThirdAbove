@@ -24,11 +24,11 @@
 
 - **🎧 Stereo Spatial Ear Separation:** Panning the **Lead Note to the Left Ear** and **Your Harmony Target to the Right Ear** prevents acoustic masking in your head, allowing your ear to isolate and lock into harmony effortlessly.
 - **🎤 Zero-Feedback Mic Gating:** The microphone stream is automatically muted while reference tones are sounding, preventing false readings from device speakers.
-- **🎙️ Vocal Range Presets (Tenor, Baritone, Bass, Alto, Soprano):** Tailors melody roots to your vocal register. Tenor mode anchors harmonies in the resonant $G\#3 - C\#4$ sweet spot, so you never have to strain for high $A4$s.
-- **⚡ 2-Second Pitch Lock-In Progression:** Hold your pitch steady within tune ($\pm 25\text{ cents}$) for 2 seconds to master the interval; the app automatically advances to the next melody note.
+- **🎙️ Vocal Range Presets (Tenor, Baritone, Bass, Alto, Soprano):** Tailors melody roots to your vocal register. Tenor mode anchors harmonies in the resonant **G#3 to C#4** sweet spot, so you never have to strain for high A4s.
+- **⚡ 2-Second Pitch Lock-In Progression:** Hold your pitch steady within tune (±25 cents) for 2 seconds to master the interval; the app automatically advances to the next melody note.
 - **🔄 Smart 2-Second Duet Re-orientation:** If you struggle out of tune for 2 consecutive seconds, the app automatically replays both notes in stereo duet for 2 seconds to re-ground your pitch memory.
 - **🚫 Anti-Lead Magnetic Pull Diagnostics:** Instantly alerts you if you accidentally slip into singing the melody note instead of the harmony note (*"Pulled to lead! Sing higher!"*).
-- **🔬 YIN Monophonic Pitch Extraction:** Robust vocal fundamental frequency detection ($80\text{ Hz} - 1200\text{ Hz}$) with sub-sample parabolic interpolation.
+- **🔬 YIN Monophonic Pitch Extraction:** Robust vocal fundamental frequency detection (80 Hz to 1200 Hz) with sub-sample parabolic interpolation.
 
 ---
 
