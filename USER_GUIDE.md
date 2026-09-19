@@ -67,6 +67,6 @@ Choose the harmonic interval you want to master:
 ---
 
 ## 💡 Practical Duet Tips
-1. **The 70/30 Listening Rule:** When harmonizing with your wife, listen to her voice at roughly 70% attention and your own voice at 30%. You should feel your voice *lock into* hers rather than competing with it.
+1. **The 70/30 Listening Rule:** When harmonizing with the lead singer, listen to the lead voice at roughly 70% attention and your own voice at 30%. You should feel your voice *lock into* the lead rather than competing with it.
 2. **Feel the Resonance:** When you hit a true Major 3rd, you will feel a pleasing physical "buzz" or warmth between the two voices. 
 3. **Practice Softly First:** Singing softly makes it easier to hear both pitches without shouting yourself out of tune.
