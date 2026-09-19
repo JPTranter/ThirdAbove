@@ -4,10 +4,15 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.scale
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -104,6 +109,29 @@ fun HarmonyTrainerScreen() {
     }
 
     var isListening by remember { mutableStateOf(false) }
+    var hasStartedListening by remember { mutableStateOf(false) }
+
+    // Pulsing attention effect on the mic button until the user starts listening for the first time
+    val micTransition = rememberInfiniteTransition(label = "micPulseTransition")
+    val micPulseScale by micTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (!hasStartedListening && !isListening) 1.25f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 750),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "micPulseScale"
+    )
+    val micGlowAlpha by micTransition.animateFloat(
+        initialValue = 0.2f,
+        targetValue = if (!hasStartedListening && !isListening) 0.7f else 0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 750),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "micGlowAlpha"
+    )
+
     var selectedRange by remember { mutableStateOf(VocalRange.TENOR) }
     var selectedInterval by remember { mutableStateOf(HarmonyInterval.MAJOR_THIRD) }
 
@@ -193,6 +221,7 @@ fun HarmonyTrainerScreen() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            hasStartedListening = true
             isListening = true
             tracker.startListening(scope)
         }
@@ -228,36 +257,63 @@ fun HarmonyTrainerScreen() {
             )
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(
-                    onClick = {
-                        if (isListening) {
-                            tracker.stopListening()
-                            isListening = false
-                        } else {
-                            val hasPermission = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.RECORD_AUDIO
-                            ) == PackageManager.PERMISSION_GRANTED
-
-                            if (hasPermission) {
-                                isListening = true
-                                tracker.startListening(scope)
-                            } else {
-                                permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .size(38.dp)
-                        .clip(CircleShape)
-                        .background(if (isListening) PitchInTuneGreen else StudioCardBg)
+                // Pulsing outer aura ring when waiting for user to start listening for the first time
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(46.dp)
                 ) {
-                    Icon(
-                        imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicOff,
-                        contentDescription = "Toggle Mic",
-                        tint = if (isListening) Color.Black else SoftWhite,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    if (!hasStartedListening && !isListening) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .scale(micPulseScale)
+                                .clip(CircleShape)
+                                .background(PitchInTuneGreen.copy(alpha = micGlowAlpha))
+                        )
+                    }
+
+                    IconButton(
+                        onClick = {
+                            hasStartedListening = true
+                            if (isListening) {
+                                tracker.stopListening()
+                                isListening = false
+                            } else {
+                                val hasPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.RECORD_AUDIO
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                if (hasPermission) {
+                                    isListening = true
+                                    tracker.startListening(scope)
+                                } else {
+                                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .scale(if (!hasStartedListening && !isListening) micPulseScale else 1f)
+                            .clip(CircleShape)
+                            .background(
+                                if (isListening) PitchInTuneGreen
+                                else if (!hasStartedListening) Color(0xFF1E2F26)
+                                else StudioCardBg
+                            )
+                            .border(
+                                width = if (!hasStartedListening && !isListening) 2.dp else 1.dp,
+                                color = if (!hasStartedListening && !isListening) PitchInTuneGreen else StudioCardBorder,
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = if (isListening) Icons.Default.Mic else Icons.Default.MicOff,
+                            contentDescription = "Toggle Mic",
+                            tint = if (isListening) Color.Black else if (!hasStartedListening) PitchInTuneGreen else SoftWhite,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.width(6.dp))
