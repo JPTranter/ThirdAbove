@@ -64,7 +64,16 @@
     <button id="micBtn" class="btn btn-mic">Start Mic</button>
   </div>
 
-  <div class="card-label">Select Harmony Interval</div>
+  <div class="card-label">Your Vocal Range</div>
+  <div class="interval-bar" id="rangeContainer">
+    <div class="interval-chip" data-range="BASS">Bass (Roots G2-C3)</div>
+    <div class="interval-chip" data-range="BARITONE">Baritone (Roots C3-F3)</div>
+    <div class="interval-chip active" data-range="TENOR">Tenor (Roots E3-A3)</div>
+    <div class="interval-chip" data-range="ALTO">Alto (Roots A3-D4)</div>
+    <div class="interval-chip" data-range="SOPRANO">Soprano (Roots C4-G4)</div>
+  </div>
+
+  <div class="card-label" style="margin-top: 6px;">Select Harmony Interval</div>
   <div class="interval-bar" id="intervalContainer">
     <div class="interval-chip" data-semi="0">Unison (0)</div>
     <div class="interval-chip" data-semi="3">Minor 3rd (+3)</div>
@@ -77,13 +86,13 @@
   <div class="dual-cards">
     <div class="card">
       <div class="card-label">Lead Note</div>
-      <div id="leadNote" class="note-val lead-val">C4</div>
+      <div id="leadNote" class="note-val lead-val">E3</div>
       <div class="card-label">Root Melody</div>
       <button id="playLeadBtn" class="btn btn-tone">▶ Play Lead (4s)</button>
     </div>
     <div class="card">
       <div class="card-label">Your Harmony</div>
-      <div id="targetNote" class="note-val harmony-val">E4</div>
+      <div id="targetNote" class="note-val harmony-val">G#3</div>
       <div class="card-label">+4 Semitones</div>
       <button id="playTargetBtn" class="btn btn-tone">▶ Hear Target (4s)</button>
     </div>
@@ -114,16 +123,25 @@
   </div>
 
   <div class="tip-box">
-    <strong>Duet Tip:</strong> When singing harmony, your ear will naturally try to "fall" into the melody note. Keep your voice grounded on your target note (+3rd above) and listen to the chord resonate!
+    <strong>Duet Tip:</strong> As a Tenor, the root notes start in your lower/middle register (E3 to A3) so your 3rd harmonies stay in your sweet spot (G#3 to C#4) without forcing high A4s!
   </div>
 </div>
 
 <script>
   const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  // Progressive melody sequence for drills
-  const MELODY_SEQUENCE = [60, 62, 64, 65, 67, 69, 67, 65, 64, 62, 60]; // C4, D4, E4, F4, G4, A4...
+  
+  const RANGE_SEQUENCES = {
+    BASS: [43, 45, 47, 48, 50, 48, 47, 45, 43],         // G2, A2, B2, C3, D3...
+    BARITONE: [48, 50, 52, 53, 55, 53, 52, 50, 48],     // C3, D3, E3, F3, G3...
+    TENOR: [52, 53, 55, 57, 55, 53, 52],                 // E3, F3, G3, A3... Harmony stays G#3 to C#4!
+    ALTO: [57, 59, 60, 62, 60, 59, 57],                  // A3, B3, C4, D4...
+    SOPRANO: [60, 62, 64, 65, 67, 65, 64, 62, 60]       // C4, D4, E4, F4, G4...
+  };
+
+  let currentRange = "TENOR";
+  let melodySequence = RANGE_SEQUENCES.TENOR;
   let melodyIdx = 0;
-  let rootMidi = MELODY_SEQUENCE[0]; 
+  let rootMidi = melodySequence[0]; 
   let intervalSemi = 4; // Major 3rd
   let audioCtx = null;
   let isListening = false;
@@ -144,8 +162,8 @@
   }
 
   function advanceToNextLeadNote() {
-    melodyIdx = (melodyIdx + 1) % MELODY_SEQUENCE.length;
-    rootMidi = MELODY_SEQUENCE[melodyIdx];
+    melodyIdx = (melodyIdx + 1) % melodySequence.length;
+    rootMidi = melodySequence[melodyIdx];
     updateCards();
     // Play the new lead note automatically to guide the singer
     playTone(midiToFreq(rootMidi));
@@ -157,9 +175,23 @@
     document.getElementById('targetNote').innerText = midiToNoteName(targetMidi);
   }
 
-  document.querySelectorAll('.interval-chip').forEach(chip => {
+  // Vocal range selection handler
+  document.querySelectorAll('#rangeContainer .interval-chip').forEach(chip => {
     chip.addEventListener('click', () => {
-      document.querySelectorAll('.interval-chip').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#rangeContainer .interval-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      currentRange = chip.getAttribute('data-range');
+      melodySequence = RANGE_SEQUENCES[currentRange];
+      melodyIdx = 0;
+      rootMidi = melodySequence[0];
+      updateCards();
+    });
+  });
+
+  // Interval selection handler
+  document.querySelectorAll('#intervalContainer .interval-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#intervalContainer .interval-chip').forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
       intervalSemi = parseInt(chip.getAttribute('data-semi'));
       updateCards();

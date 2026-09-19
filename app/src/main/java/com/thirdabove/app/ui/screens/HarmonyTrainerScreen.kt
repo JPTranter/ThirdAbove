@@ -63,6 +63,7 @@ import com.thirdabove.app.domain.HarmonyEvaluation
 import com.thirdabove.app.domain.HarmonyInterval
 import com.thirdabove.app.domain.HarmonyScorer
 import com.thirdabove.app.domain.HarmonyStatus
+import com.thirdabove.app.domain.VocalRange
 import com.thirdabove.app.ui.theme.CardViolet
 import com.thirdabove.app.ui.theme.CoralPink
 import com.thirdabove.app.ui.theme.DeepViolet
@@ -86,9 +87,12 @@ fun HarmonyTrainerScreen() {
     val pitchState by tracker.pitchState.collectAsState()
 
     var isListening by remember { mutableStateOf(false) }
-    val melodySequence = remember { listOf(60, 62, 64, 65, 67, 69, 67, 65, 64, 62, 60) } // C4, D4, E4, F4, G4, A4...
+    var selectedRange by remember { mutableStateOf(VocalRange.TENOR) }
+    var selectedInterval by remember { mutableStateOf(HarmonyInterval.MAJOR_THIRD) }
+
+    val melodySequence = selectedRange.melodySequence
     var melodyIndex by remember { mutableStateOf(0) }
-    val rootMidi = melodySequence[melodyIndex]
+    val rootMidi = melodySequence.getOrElse(melodyIndex) { melodySequence.first() }
 
     val targetMidi = rootMidi + selectedInterval.semitones
     val noteNames = remember { arrayOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B") }
@@ -219,6 +223,45 @@ fun HarmonyTrainerScreen() {
                     contentDescription = "Toggle Mic",
                     tint = SoftWhite
                 )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Vocal Range Picker
+        Text(
+            text = "YOUR VOCAL RANGE",
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = TextMuted,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            items(VocalRange.entries.toTypedArray()) { range ->
+                val isSelected = range == selectedRange
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) GoldenAmber else CardViolet)
+                        .clickable {
+                            selectedRange = range
+                            melodyIndex = 0
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = range.displayName,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) Color.Black else SoftWhite
+                    )
+                }
             }
         }
 

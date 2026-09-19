@@ -2,6 +2,38 @@ package com.thirdabove.app.domain
 
 import kotlin.math.abs
 
+enum class VocalRange(
+    val displayName: String,
+    val subtitle: String,
+    val melodySequence: List<Int> // Root notes tailored so harmonies (+3, +4, etc.) fit comfortably
+) {
+    BASS(
+        "Bass",
+        "E2 - E4 (Roots: G2 - C3)",
+        listOf(43, 45, 47, 48, 50, 48, 47, 45, 43) // G2, A2, B2, C3, D3...
+    ),
+    BARITONE(
+        "Baritone",
+        "A2 - A4 (Roots: C3 - F3)",
+        listOf(48, 50, 52, 53, 55, 53, 52, 50, 48) // C3, D3, E3, F3, G3...
+    ),
+    TENOR(
+        "Tenor",
+        "C3 - C5 (Roots: E3 - A3)",
+        listOf(52, 53, 55, 57, 55, 53, 52) // E3, F3, G3, A3... User's 3rd stays in comfort zone G3 - C#4!
+    ),
+    ALTO(
+        "Alto / Countertenor",
+        "F3 - F5 (Roots: A3 - D4)",
+        listOf(57, 59, 60, 62, 60, 59, 57) // A3, B3, C4, D4...
+    ),
+    SOPRANO(
+        "Soprano / High Lead",
+        "C4 - C6 (Roots: C4 - G4)",
+        listOf(60, 62, 64, 65, 67, 65, 64, 62, 60) // C4, D4, E4, F4, G4...
+    )
+}
+
 enum class HarmonyInterval(val displayName: String, val semitones: Int, val description: String) {
     UNISON("Unison (Tuning)", 0, "Sing the exact same note to train pure ear alignment"),
     MINOR_THIRD("Minor 3rd Above", 3, "Sad, sweet, bluesy harmony (+3 semitones)"),
