@@ -303,12 +303,12 @@ fun HarmonyTrainerScreen() {
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Harmony Dual-Card Display
+        // Harmony Dual-Card Display (Stereo: Left Ear Lead | Right Ear Harmony)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Root Lead Note
+            // Root Lead Note (Left Channel 🎧)
             Card(
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = CardViolet),
@@ -320,12 +320,12 @@ fun HarmonyTrainerScreen() {
                 ) {
                     Text("LEAD NOTE", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
                     Text(rootName, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = GoldenAmber)
-                    Text("Root Melody", fontSize = 11.sp, color = TextMuted)
+                    Text("Left Ear 🎧", fontSize = 11.sp, color = GoldenAmber)
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = {
                             scope.launch {
-                                synth.playTone(MusicMath.midiToFrequency(rootMidi), 4000)
+                                synth.playTone(MusicMath.midiToFrequency(rootMidi), 4000, pan = -1.0f)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = GoldenAmber),
@@ -333,12 +333,12 @@ fun HarmonyTrainerScreen() {
                     ) {
                         Icon(Icons.Default.VolumeUp, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Play Lead (4s)", fontSize = 10.sp)
+                        Text("Play Left (4s)", fontSize = 10.sp)
                     }
                 }
             }
 
-            // Target Harmony Note (User's Voice)
+            // Target Harmony Note (Right Channel 🎧)
             Card(
                 modifier = Modifier.weight(1f),
                 colors = CardDefaults.cardColors(containerColor = CardViolet),
@@ -350,12 +350,12 @@ fun HarmonyTrainerScreen() {
                 ) {
                     Text("YOUR HARMONY", fontSize = 11.sp, color = TextMuted, fontWeight = FontWeight.Bold)
                     Text(targetName, fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = ResonantTeal)
-                    Text("+${selectedInterval.semitones} semitones", fontSize = 11.sp, color = TextMuted)
+                    Text("Right Ear 🎧", fontSize = 11.sp, color = ResonantTeal)
                     Spacer(modifier = Modifier.height(8.dp))
                     Button(
                         onClick = {
                             scope.launch {
-                                synth.playTone(MusicMath.midiToFrequency(targetMidi), 4000)
+                                synth.playTone(MusicMath.midiToFrequency(targetMidi), 4000, pan = 1.0f)
                             }
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = ResonantTeal),
@@ -363,10 +363,32 @@ fun HarmonyTrainerScreen() {
                     ) {
                         Icon(Icons.Default.Hearing, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Hear Target (4s)", fontSize = 10.sp)
+                        Text("Play Right (4s)", fontSize = 10.sp)
                     }
                 }
             }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // Play Both as Stereo Duet (Lead L + Harmony R)
+        Button(
+            onClick = {
+                scope.launch {
+                    synth.playDuet(
+                        MusicMath.midiToFrequency(rootMidi),
+                        MusicMath.midiToFrequency(targetMidi),
+                        durationMs = 4000
+                    )
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B236E)),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().height(42.dp)
+        ) {
+            Icon(Icons.Default.GraphicEq, contentDescription = null, tint = CoralPink, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Play Stereo Duet (L: Lead | R: Harmony)", fontSize = 12.sp, color = SoftWhite)
         }
 
         Spacer(modifier = Modifier.height(18.dp))

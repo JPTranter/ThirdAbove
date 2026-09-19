@@ -85,18 +85,22 @@
 
   <div class="dual-cards">
     <div class="card">
-      <div class="card-label">Lead Note</div>
+      <div class="card-label">Lead Note (Left Ear 🎧)</div>
       <div id="leadNote" class="note-val lead-val">E3</div>
       <div class="card-label">Root Melody</div>
-      <button id="playLeadBtn" class="btn btn-tone">▶ Play Lead (4s)</button>
+      <button id="playLeadBtn" class="btn btn-tone">▶ Play Left (4s)</button>
     </div>
     <div class="card">
-      <div class="card-label">Your Harmony</div>
+      <div class="card-label">Your Harmony (Right Ear 🎧)</div>
       <div id="targetNote" class="note-val harmony-val">G#3</div>
       <div class="card-label">+4 Semitones</div>
-      <button id="playTargetBtn" class="btn btn-tone">▶ Hear Target (4s)</button>
+      <button id="playTargetBtn" class="btn btn-tone">▶ Play Right (4s)</button>
     </div>
   </div>
+
+  <button id="playDuetBtn" class="btn btn-tone" style="background: rgba(255,94,126,0.2); border: 1px solid var(--coral); padding: 12px; font-size: 13px;">
+    🎧 Play Stereo Duet (L: Lead | R: Harmony)
+  </button>
 
   <div class="feedback-card">
     <div class="card-label">Your Sung Pitch</div>
@@ -198,29 +202,47 @@
     });
   });
 
-  function playTone(freq) {
+  function playTone(freq, pan = 0) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
+    const panner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+    
     osc.type = 'triangle';
     osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
     
-    // Play for 4.0 seconds with smooth envelopes
+    if (panner) {
+      panner.pan.setValueAtTime(pan, audioCtx.currentTime); // -1 = full Left, +1 = full Right
+    }
+
     const duration = 4.0;
     gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.35, audioCtx.currentTime + 0.1);
     gain.gain.setValueAtTime(0.35, audioCtx.currentTime + duration - 0.4);
     gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
 
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    if (panner) {
+      osc.connect(gain);
+      gain.connect(panner);
+      panner.connect(audioCtx.destination);
+    } else {
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+    }
+
     osc.start();
     osc.stop(audioCtx.currentTime + duration + 0.05);
   }
 
-  document.getElementById('playLeadBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi)));
-  document.getElementById('playTargetBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi + intervalSemi)));
+  function playDuet(leadFreq, harmonyFreq) {
+    playTone(leadFreq, -1.0);    // Left ear = Lead
+    playTone(harmonyFreq, 1.0);  // Right ear = Harmony
+  }
+
+  document.getElementById('playLeadBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi), -1.0));
+  document.getElementById('playTargetBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi + intervalSemi), 1.0));
+  document.getElementById('playDuetBtn').addEventListener('click', () => playDuet(midiToFreq(rootMidi), midiToFreq(rootMidi + intervalSemi)));
 
   // Autocorrelation pitch detection
   function autoCorrelate(buf, sampleRate) {
