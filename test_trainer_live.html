@@ -85,7 +85,13 @@
     <div class="title">ThirdAbove</div>
     <div class="header-actions">
       <button id="micBtn" class="btn-mic pulse" title="Tap to Start Listening">🎤</button>
-      <span style="color: var(--muted); font-size: 18px; cursor: pointer;">⋮</span>
+      <div style="position: relative;">
+        <span id="moreBtn" style="color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px 6px;">⋮</span>
+        <div id="moreMenu" style="display: none; position: absolute; right: 0; top: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 170px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100; overflow: hidden;">
+          <div onclick="alert('🎧 How It Works:\n\n1. Wear headphones: Lead note is in Left ear, Harmony target is in Right ear.\n2. Tap the mic icon to start.\n3. Hold your sung harmony steady within ±25 cents for 2 seconds to lock in and advance.\n4. If you slip out of tune for 2 seconds, the app replays both notes in duet to help you re-orient.')" style="padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border);">💡 How It Works</div>
+          <div onclick="window.open('https://github.com/JPTranter/ThirdAbove', '_blank')" style="padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer;">🌐 GitHub Project</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -429,6 +435,16 @@
 
     requestAnimationFrame(processPitch);
   }
+
+  document.getElementById('moreBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const menu = document.getElementById('moreMenu');
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  });
+  document.addEventListener('click', () => {
+    const menu = document.getElementById('moreMenu');
+    if (menu) menu.style.display = 'none';
+  });
 
   document.getElementById('micBtn').addEventListener('click', async () => {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();

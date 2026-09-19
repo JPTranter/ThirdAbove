@@ -27,23 +27,33 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Audiotrack
+import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -131,6 +141,10 @@ fun HarmonyTrainerScreen() {
         ),
         label = "micGlowAlpha"
     )
+
+    var showMenu by remember { mutableStateOf(false) }
+    var showGuideDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
 
     var selectedRange by remember { mutableStateOf(VocalRange.TENOR) }
     var selectedInterval by remember { mutableStateOf(HarmonyInterval.MAJOR_THIRD) }
@@ -316,13 +330,63 @@ fun HarmonyTrainerScreen() {
                     }
                 }
 
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(4.dp))
 
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = null,
-                    tint = TextMuted
-                )
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "More Options",
+                            tint = SoftWhite.copy(alpha = 0.8f),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier
+                            .background(StudioCardBg)
+                            .border(1.dp, StudioCardBorder, RoundedCornerShape(8.dp))
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("How It Works & Guide", color = SoftWhite, fontSize = 14.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.HelpOutline, contentDescription = null, tint = GoldenAmber, modifier = Modifier.size(18.dp))
+                            },
+                            onClick = {
+                                showMenu = false
+                                showGuideDialog = true
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("About ThirdAbove", color = SoftWhite, fontSize = 14.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Info, contentDescription = null, tint = ResonantTeal, modifier = Modifier.size(18.dp))
+                            },
+                            onClick = {
+                                showMenu = false
+                                showAboutDialog = true
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("View on GitHub", color = SoftWhite, fontSize = 14.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.OpenInBrowser, contentDescription = null, tint = CoralPink, modifier = Modifier.size(18.dp))
+                            },
+                            onClick = {
+                                showMenu = false
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/JPTranter/ThirdAbove"))
+                                context.startActivity(intent)
+                            }
+                        )
+                    }
+                }
             }
         }
 
@@ -710,5 +774,110 @@ fun HarmonyTrainerScreen() {
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+    }
+
+    // How It Works & Guide Dialog
+    if (showGuideDialog) {
+        AlertDialog(
+            onDismissRequest = { showGuideDialog = false },
+            containerColor = StudioCardBg,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.HelpOutline, contentDescription = null, tint = GoldenAmber, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("How It Works", color = SoftWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "🎧 Stereo Spatial Audio:",
+                        fontWeight = FontWeight.Bold,
+                        color = GoldenAmber,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "Wear headphones! The Lead Note is in your Left ear and Harmony is in your Right ear to prevent vocal acoustic masking.",
+                        color = SoftWhite.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Text(
+                        text = "🎯 2-Second Pitch Lock-In:",
+                        fontWeight = FontWeight.Bold,
+                        color = PitchInTuneGreen,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "Hold your harmony note steady within ±25 cents for 2 continuous seconds to complete the note and advance the melody sequence.",
+                        color = SoftWhite.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Text(
+                        text = "🔄 2-Second Duet Re-orientation:",
+                        fontWeight = FontWeight.Bold,
+                        color = CoralPink,
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "If you struggle out-of-tune for 2 seconds, ThirdAbove automatically replays both notes together in stereo for 2 seconds to ground your pitch memory.",
+                        color = SoftWhite.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showGuideDialog = false }) {
+                    Text("Got It", color = GoldenAmber, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    // About ThirdAbove Dialog
+    if (showAboutDialog) {
+        AlertDialog(
+            onDismissRequest = { showAboutDialog = false },
+            containerColor = StudioCardBg,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = ResonantTeal, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("About ThirdAbove", color = SoftWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "ThirdAbove v1.0.0",
+                        fontWeight = FontWeight.Bold,
+                        color = SoftWhite,
+                        fontSize = 15.sp
+                    )
+                    Text(
+                        text = "A native Android vocal harmony trainer powered by Jetpack Compose, YIN monophonic pitch detection, and binaural stereo audio synthesis.",
+                        color = SoftWhite.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Open Source under the MIT License.\nCreated by Jason Tranter © 2026.",
+                        color = TextMuted,
+                        fontSize = 11.sp,
+                        lineHeight = 15.sp
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showAboutDialog = false }) {
+                    Text("Close", color = ResonantTeal, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 }
