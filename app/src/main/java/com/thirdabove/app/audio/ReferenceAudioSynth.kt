@@ -4,6 +4,9 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlin.math.PI
 import kotlin.math.sin
@@ -15,6 +18,9 @@ class ReferenceAudioSynth {
     private var audioTrack: AudioTrack? = null
     private val sampleRate = 44100
     private var isPlaying = false
+
+    private val _isPlayingState = MutableStateFlow(false)
+    val isPlayingState: StateFlow<Boolean> = _isPlayingState.asStateFlow()
 
     /**
      * Plays a single tone panned across the stereo field.
@@ -113,17 +119,28 @@ class ReferenceAudioSynth {
             .build()
 
         audioTrack?.write(stereoBuffer, 0, stereoBuffer.size)
+        val frameCount = stereoBuffer.size / 2
+        audioTrack?.notificationMarkerPosition = frameCount
+        audioTrack?.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
+            override fun onPeriodicNotification(track: AudioTrack?) {}
+            override fun onMarkerReached(track: AudioTrack?) {
+                _isPlayingState.value = false
+                isPlaying = false
+            }
+        })
         audioTrack?.play()
         isPlaying = true
+        _isPlayingState.value = true
     }
 
     fun stopTone() {
         try {
-            if (isPlaying && audioTrack != null) {
+            if (audioTrack != null) {
                 audioTrack?.stop()
                 audioTrack?.release()
                 audioTrack = null
                 isPlaying = false
+                _isPlayingState.value = false
             }
         } catch (_: Exception) {}
     }

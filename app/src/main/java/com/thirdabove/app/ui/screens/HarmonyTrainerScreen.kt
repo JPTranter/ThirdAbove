@@ -88,6 +88,12 @@ fun HarmonyTrainerScreen() {
     val synth = remember { ReferenceAudioSynth() }
 
     val pitchState by tracker.pitchState.collectAsState()
+    val isTonePlaying by synth.isPlayingState.collectAsState()
+
+    // Mute microphone processing while reference tones are playing to prevent self-feedback!
+    LaunchedEffect(isTonePlaying) {
+        tracker.isMuted = isTonePlaying
+    }
 
     var isListening by remember { mutableStateOf(false) }
     var selectedRange by remember { mutableStateOf(VocalRange.TENOR) }
@@ -111,8 +117,8 @@ fun HarmonyTrainerScreen() {
     }
 
     var lockInMs by remember { mutableStateOf(0L) }
-    val isLockedIn = remember(pitchState, rootMidi, targetMidi) {
-        if (!pitchState.isVoiced) false
+    val isLockedIn = remember(pitchState, rootMidi, targetMidi, isTonePlaying) {
+        if (!pitchState.isVoiced || isTonePlaying) false
         else {
             val eval = HarmonyScorer.evaluate(pitchState.midiNote, pitchState.centsDeviation, rootMidi, targetMidi)
             eval.status == HarmonyStatus.IN_TUNE
@@ -122,8 +128,8 @@ fun HarmonyTrainerScreen() {
     // Timer and re-orientation loop:
     // 1. If in tune, accumulates 2 seconds to advance to next note.
     // 2. If singing but NOT in tune for 2 consecutive seconds, replays Stereo Duet (2s) to reorient user!
-    LaunchedEffect(isListening, pitchState.isVoiced, isLockedIn, rootMidi, targetMidi) {
-        if (!isListening || !pitchState.isVoiced) {
+    LaunchedEffect(isListening, pitchState.isVoiced, isLockedIn, rootMidi, targetMidi, isTonePlaying) {
+        if (!isListening || !pitchState.isVoiced || isTonePlaying) {
             lockInMs = 0L
             return@LaunchedEffect
         }
@@ -166,9 +172,11 @@ fun HarmonyTrainerScreen() {
         }
     }
 
-    val evaluation = remember(pitchState, rootMidi, targetMidi) {
-        if (!pitchState.isVoiced) {
-            HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "Sing into mic to test...")
+    val evaluation = remember(pitchState, rootMidi, targetMidi, isTonePlaying) {
+        if (isTonePlaying) {
+            HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "🎧 Playing reference tone...")
+        } else if (!pitchState.isVoiced) {
+            HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "Sing your harmony note...")
         } else {
             HarmonyScorer.evaluate(
                 userMidi = pitchState.midiNote,

@@ -24,6 +24,7 @@ class MicrophonePitchTracker(
     private var audioRecord: AudioRecord? = null
     private var trackerJob: Job? = null
     private val detector = YinPitchDetector(sampleRate.toFloat(), bufferSize, threshold = 0.15f)
+    var isMuted: Boolean = false
 
     private val _pitchState = MutableStateFlow(
         PitchResult(0f, "--", 0, 0f, 0f, isVoiced = false)
@@ -61,6 +62,11 @@ class MicrophonePitchTracker(
                 while (isActive) {
                     val read = audioRecord?.read(buffer, 0, bufferSize) ?: -1
                     if (read > 0) {
+                        if (isMuted) {
+                            _pitchState.value = PitchResult(0f, "--", 0, 0f, 0f, isVoiced = false)
+                            continue
+                        }
+
                         // Calculate RMS power to reject room silence/breaths
                         var sumSquares = 0.0
                         for (i in 0 until read) {

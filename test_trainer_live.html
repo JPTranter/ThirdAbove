@@ -205,6 +205,9 @@
     });
   });
 
+  let isTonePlaying = false;
+  let toneTimeout = null;
+
   function playTone(freq, pan = 0, duration = 4.0) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -232,6 +235,12 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
     }
+
+    isTonePlaying = true;
+    if (toneTimeout) clearTimeout(toneTimeout);
+    toneTimeout = setTimeout(() => {
+      isTonePlaying = false;
+    }, (duration + 0.05) * 1000);
 
     osc.start();
     osc.stop(audioCtx.currentTime + duration + 0.05);
@@ -281,6 +290,16 @@
 
   function processPitch() {
     if (!isListening) return;
+
+    if (isTonePlaying) {
+      document.getElementById('sungNote').innerText = "--";
+      document.getElementById('sungHz').innerText = "🎧 Playing reference tone...";
+      document.getElementById('statusBadge').innerText = "Listen to the harmony...";
+      document.getElementById('statusBadge').style.color = "var(--amber)";
+      requestAnimationFrame(processPitch);
+      return;
+    }
+
     analyser.getFloatTimeDomainData(buf);
     const pitch = autoCorrelate(buf, audioCtx.sampleRate);
     
