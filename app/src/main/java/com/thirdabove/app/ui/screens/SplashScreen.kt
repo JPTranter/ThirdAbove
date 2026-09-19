@@ -1,16 +1,11 @@
 package com.thirdabove.app.ui.screens
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,248 +19,184 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Audiotrack
-import androidx.compose.material.icons.filled.GraphicEq
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thirdabove.app.ui.theme.CoralPink
-import com.thirdabove.app.ui.theme.DeepViolet
-import com.thirdabove.app.ui.theme.GoldenAmber
-import com.thirdabove.app.ui.theme.ResonantTeal
-import com.thirdabove.app.ui.theme.SoftWhite
-import com.thirdabove.app.ui.theme.TextMuted
+import com.thirdabove.app.R
 import kotlinx.coroutines.delay
 
 @Composable
 fun FunSplashScreen(
     onContinue: () -> Unit
 ) {
-    var progress by remember { mutableStateOf(0.1f) }
-    val scale = remember { Animatable(0.75f) }
-    val alpha = remember { Animatable(0f) }
-
-    // Wave animation
-    val transition = rememberInfiniteTransition(label = "waveAnim")
-    val waveOffset by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(4000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "waveOffset"
-    )
+    var progress by remember { mutableFloatStateOf(0.15f) }
+    val contentAlpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(
+        contentAlpha.animateTo(
             targetValue = 1f,
-            animationSpec = tween(700, easing = FastOutSlowInEasing)
-        )
-        alpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(700)
+            animationSpec = tween(600)
         )
         while (progress < 1.0f) {
-            delay(150)
-            progress += 0.07f
+            delay(120)
+            progress += 0.08f
         }
-        delay(300)
+        delay(400)
         onContinue()
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        DeepViolet,
-                        Color(0xFF281347),
-                        Color(0xFF1B0B33)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onContinue
+            )
+    ) {
+        // Fullscreen illustration art matching the reference screenshot exactly
+        Image(
+            painter = painterResource(id = R.drawable.splash_art),
+            contentDescription = "ThirdAbove Splash Artwork",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Subtle gradient overlay at bottom for maximum legibility and button contrast
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Transparent,
+                            Color(0x22110D25),
+                            Color(0xDD0D1B2A)
+                        )
                     )
                 )
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        // Dynamic harmonic background wave lines
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-            val midY = h * 0.42f
+        )
 
-            for (i in 0..2) {
-                val phase = waveOffset + (i * 60)
-                val strokeColor = when (i) {
-                    0 -> CoralPink.copy(alpha = 0.35f)
-                    1 -> GoldenAmber.copy(alpha = 0.3f)
-                    else -> ResonantTeal.copy(alpha = 0.25f)
-                }
-
-                drawLine(
-                    color = strokeColor,
-                    start = Offset(0f, midY + (i * 18f)),
-                    end = Offset(w, midY - (i * 14f)),
-                    strokeWidth = 6f
-                )
-            }
-        }
-
+        // Bottom UI: Dynamic Loading Indicator & Start Singing CTA
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 32.dp, vertical = 36.dp)
+                .alpha(contentAlpha.value),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Central Hero Card
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // Dynamic progress bar with glowing musical note pill
+            Box(
                 modifier = Modifier
-                    .scale(scale.value)
-                    .alpha(alpha.value)
+                    .fillMaxWidth(0.85f)
+                    .height(28.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
-                // Harmonic dual icons
+                // Background Track
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0x44281347))
+                )
+
+                // Filled Bar
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress.coerceIn(0.05f, 1f))
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                colors = listOf(Color(0xFFFF9E7D), Color(0xFFFF6584))
+                            )
+                        )
+                )
+
+                // Musical note indicator bulb at current position
+                Box(
+                    modifier = Modifier
+                        .padding(start = (progress.coerceIn(0f, 0.92f) * 240).dp)
+                        .size(26.dp)
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                colors = listOf(CoralPink, GoldenAmber, ResonantTeal)
+                                colors = listOf(Color(0xFFFFB074), Color(0xFFFF5E7E))
                             )
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(42.dp)
-                        )
-                        Icon(
-                            imageVector = Icons.Default.Audiotrack,
-                            contentDescription = null,
-                            tint = Color.White.copy(alpha = 0.9f),
-                            modifier = Modifier.size(34.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Text(
-                    text = "ThirdAbove",
-                    fontSize = 42.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = FontFamily.SansSerif,
-                    color = SoftWhite,
-                    letterSpacing = 1.2.sp
-                )
-
-                Text(
-                    text = "Find your harmony.",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = GoldenAmber,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
-
-                Text(
-                    text = "Learn to lock in two-part vocal harmonies and sing together with confidence.",
-                    fontSize = 14.sp,
-                    color = TextMuted,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth(0.85f)
-                        .padding(top = 12.dp)
-                )
             }
 
-            // Bottom loading & continue action
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = if (progress < 1f) "Loading your vocal journey..." else "Vocal space tuned!",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+                fontFamily = FontFamily.SansSerif
+            )
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Start Singing CTA
+            Button(
+                onClick = onContinue,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFFF5E7E),
+                    contentColor = Color.White
+                ),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth(0.75f)
+                    .height(48.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.GraphicEq,
+                        imageVector = Icons.Default.PlayArrow,
                         contentDescription = null,
-                        tint = ResonantTeal,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (progress < 1f) "Tuning your vocal space..." else "Ready to sing!",
-                        fontSize = 13.sp,
-                        color = TextMuted
+                        text = "Start Singing",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                LinearProgressIndicator(
-                    progress = { progress.coerceIn(0f, 1f) },
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = CoralPink,
-                    trackColor = Color.White.copy(alpha = 0.12f),
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = onContinue,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = CoralPink,
-                        contentColor = Color.White
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier
-                        .fillMaxWidth(0.75f)
-                        .height(52.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Start Singing", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
