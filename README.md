@@ -3,7 +3,8 @@
 > *Find your harmony. Master the art of vocal duet.*
 
 [![Build and Release Android APK](https://github.com/JPTranter/ThirdAbove/actions/workflows/build_and_release.yml/badge.svg)](https://github.com/JPTranter/ThirdAbove/actions/workflows/build_and_release.yml)
-[![Download APK](https://img.shields.io/badge/Download-Android%20APK-brightgreen)](https://github.com/JPTranter/ThirdAbove/releases)
+[![Live Web & iOS App](https://img.shields.io/badge/Live%20Web%20%26%20iOS%20App-Try%20Now-coral)](https://jptranter.github.io/ThirdAbove/)
+[![Download Android APK](https://img.shields.io/badge/Download-Android%20APK-brightgreen)](https://github.com/JPTranter/ThirdAbove/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![User Guide](https://img.shields.io/badge/Documentation-User%20Guide-blue)](USER_GUIDE.md)
 
@@ -45,9 +46,10 @@
 2. Download `app-debug.apk`.
 3. Open the file to install **ThirdAbove**.
 
-### Option 2: Zero-Install Instant Web Trainer
-Test the harmony engine and microphone pitch detector right in your browser without installing anything:
-- Open [`test_trainer_live.html`](test_trainer_live.html) in Chrome, Edge, or mobile Safari.
+### Option 2: Zero-Install Instant Web & iOS App
+Sing right away in your browser or install on your iPhone / iPad / PC:
+- 🌐 **Live Web App:** **[https://jptranter.github.io/ThirdAbove/](https://jptranter.github.io/ThirdAbove/)**
+- 📱 **Install on iPhone:** Open the link in Safari, tap the **Share button** (square with arrow), then select **"Add to Home Screen"** to install it as a full-screen native-like app with the custom ThirdAbove icon!
 
 ---
 
