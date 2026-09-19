@@ -2,20 +2,43 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
+local.properties
+.idea/
+*.iws
+*.ipr
+out/
+
+# Android build outputs & caches
 /build
+/*/build
 /captures
 .externalNativeBuild
 .cxx
-local.properties
+
+# Secrets, Keystores & Signing credentials
+*.jks
+*.keystore
+*.p12
+*.key
+*.pem
+*.pk8
+signing.properties
+keystore.properties
+secrets.properties
+secrets.xml
+
+# Environment variables & tokens
+.env
+.env.*
+!.env.example
+*.token
+
+# Google Services / API keys (if added in the future)
+google-services.json
+GoogleService-Info.plist
 
 # OS specific
+.DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
