@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.ThirdAbove" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#1A102F</item>
+        <item name="android:navigationBarColor">#1A102F</item>
+        <!-- Hide the Android 12+ system default center icon flash -->
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_transparent_icon</item>
+        <item name="android:windowSplashScreenBackground">#1A102F</item>
+    </style>
+</resources>
