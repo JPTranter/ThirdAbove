@@ -1,0 +1,12 @@
+title = "ThirdAbove Gitleaks Config"
+
+[extend]
+# Use default Gitleaks secret detection rules (AWS, GitHub, Google, Private Keys, etc.)
+useDefault = true
+
+[allowlist]
+description = "Allowed non-secret test strings or mocks"
+paths = [
+    '''\.gitleaks\.toml''',
+    '''test_trainer_live\.html''',
+]
