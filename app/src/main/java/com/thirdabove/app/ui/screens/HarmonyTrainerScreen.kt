@@ -116,23 +116,50 @@ fun HarmonyTrainerScreen() {
         }
     }
 
-    // Auto-advance after 2 seconds (2000ms) of locked-in pitch
-    LaunchedEffect(isLockedIn) {
+    // Timer and re-orientation loop:
+    // 1. If in tune, accumulates 2 seconds to advance to next note.
+    // 2. If singing but NOT in tune for 2 consecutive seconds, replays Stereo Duet (2s) to reorient user!
+    LaunchedEffect(isListening, pitchState.isVoiced, isLockedIn, rootMidi, targetMidi) {
+        if (!isListening || !pitchState.isVoiced) {
+            lockInMs = 0L
+            return@LaunchedEffect
+        }
+
         if (isLockedIn) {
-            val start = System.currentTimeMillis()
+            val start = System.currentTimeMillis() - lockInMs
             while (isLockedIn && (System.currentTimeMillis() - start) < 2000L) {
                 lockInMs = System.currentTimeMillis() - start
                 kotlinx.coroutines.delay(50)
             }
             if (isLockedIn && (System.currentTimeMillis() - start) >= 2000L) {
-                // Mastered! Advance to next note and play the new lead tone
+                // Mastered! Advance to next note and play new note in stereo duet
                 lockInMs = 0L
                 melodyIndex = (melodyIndex + 1) % melodySequence.size
                 val nextRoot = melodySequence[melodyIndex]
-                synth.playTone(MusicMath.midiToFrequency(nextRoot), 4000)
+                val nextTarget = nextRoot + selectedInterval.semitones
+                synth.playDuet(
+                    MusicMath.midiToFrequency(nextRoot),
+                    MusicMath.midiToFrequency(nextTarget),
+                    durationMs = 2000
+                )
             }
         } else {
+            // User is singing but out of tune. Track 2 seconds of out-of-tune struggle
             lockInMs = 0L
+            val outOfTuneStart = System.currentTimeMillis()
+            while (!isLockedIn && pitchState.isVoiced && (System.currentTimeMillis() - outOfTuneStart) < 2000L) {
+                kotlinx.coroutines.delay(50)
+            }
+            // If still out of tune after 2 seconds, play both notes simultaneously (2s) to reorient ear!
+            if (!isLockedIn && pitchState.isVoiced && (System.currentTimeMillis() - outOfTuneStart) >= 2000L) {
+                synth.playDuet(
+                    MusicMath.midiToFrequency(rootMidi),
+                    MusicMath.midiToFrequency(targetMidi),
+                    durationMs = 2000
+                )
+                // Brief pause so it doesn't immediately repeat
+                kotlinx.coroutines.delay(1000)
+            }
         }
     }
 

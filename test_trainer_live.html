@@ -153,9 +153,12 @@
   let analyser = null;
   let buf = new Float32Array(2048);
 
-  // Lock-in state
+  // Lock-in and re-orientation state
   let lockStartTime = null;
-  const REQUIRED_LOCK_MS = 2000; // 2 seconds
+  const REQUIRED_LOCK_MS = 2000; // 2 seconds to master note
+  let outOfTuneStartTime = null;
+  let lastReorientTime = 0;
+  const REORIENT_FAIL_MS = 2000; // 2 seconds of struggling triggers audio re-orientation!
 
   function midiToFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
   function freqToMidi(f) { return 69 + 12 * Math.log2(f / 440); }
@@ -202,7 +205,7 @@
     });
   });
 
-  function playTone(freq, pan = 0) {
+  function playTone(freq, pan = 0, duration = 4.0) {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
@@ -216,10 +219,9 @@
       panner.pan.setValueAtTime(pan, audioCtx.currentTime); // -1 = full Left, +1 = full Right
     }
 
-    const duration = 4.0;
     gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.35, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.35, audioCtx.currentTime + duration - 0.4);
+    gain.gain.setValueAtTime(0.35, audioCtx.currentTime + duration - 0.3);
     gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
 
     if (panner) {
@@ -235,14 +237,14 @@
     osc.stop(audioCtx.currentTime + duration + 0.05);
   }
 
-  function playDuet(leadFreq, harmonyFreq) {
-    playTone(leadFreq, -1.0);    // Left ear = Lead
-    playTone(harmonyFreq, 1.0);  // Right ear = Harmony
+  function playDuet(leadFreq, harmonyFreq, duration = 4.0) {
+    playTone(leadFreq, -1.0, duration);    // Left ear = Lead
+    playTone(harmonyFreq, 1.0, duration);  // Right ear = Harmony
   }
 
-  document.getElementById('playLeadBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi), -1.0));
-  document.getElementById('playTargetBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi + intervalSemi), 1.0));
-  document.getElementById('playDuetBtn').addEventListener('click', () => playDuet(midiToFreq(rootMidi), midiToFreq(rootMidi + intervalSemi)));
+  document.getElementById('playLeadBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi), -1.0, 4.0));
+  document.getElementById('playTargetBtn').addEventListener('click', () => playTone(midiToFreq(rootMidi + intervalSemi), 1.0, 4.0));
+  document.getElementById('playDuetBtn').addEventListener('click', () => playDuet(midiToFreq(rootMidi), midiToFreq(rootMidi + intervalSemi), 4.0));
 
   // Autocorrelation pitch detection
   function autoCorrelate(buf, sampleRate) {
@@ -311,6 +313,9 @@
           statusEl.style.color = "#10B981";
           needle.style.background = "#10B981";
 
+          // Reset out-of-tune struggle timer
+          outOfTuneStartTime = null;
+
           // Track 2-second lock-in duration
           const now = performance.now();
           if (!lockStartTime) {
@@ -334,19 +339,36 @@
           document.getElementById('lockProgress').style.width = "0%";
           document.getElementById('lockTimerText').innerText = "0.0s / 2.0s";
 
-          if (Math.abs(diff) <= 45) {
-            statusEl.innerText = diff > 0 ? "Slightly Sharp" : "Slightly Flat";
-            statusEl.style.color = "#FFB03A";
-            needle.style.background = "#FFB03A";
+          // Track out-of-tune struggle for 2 seconds
+          const now = performance.now();
+          if (!outOfTuneStartTime) {
+            outOfTuneStartTime = now;
+          }
+          const struggleElapsed = now - outOfTuneStartTime;
+
+          // If failed to lock in for 2 seconds, re-play both notes at the same time for 2 seconds!
+          if (struggleElapsed >= REORIENT_FAIL_MS && (now - lastReorientTime) > 3000) {
+            lastReorientTime = now;
+            outOfTuneStartTime = null;
+            statusEl.innerText = "🎧 Reorienting: Listen to the harmony duet...";
+            statusEl.style.color = "var(--amber)";
+            playDuet(midiToFreq(rootMidi), midiToFreq(targetMidi), 2.0);
           } else {
-            statusEl.innerText = diff > 0 ? "Too High" : "Too Low";
-            statusEl.style.color = "#FF5E7E";
-            needle.style.background = "#FF5E7E";
+            if (Math.abs(diff) <= 45) {
+              statusEl.innerText = diff > 0 ? "Slightly Sharp" : "Slightly Flat";
+              statusEl.style.color = "#FFB03A";
+              needle.style.background = "#FFB03A";
+            } else {
+              statusEl.innerText = diff > 0 ? "Too High (pitch down)" : "Too Low (pitch up)";
+              statusEl.style.color = "#FF5E7E";
+              needle.style.background = "#FF5E7E";
+            }
           }
         }
       }
     } else {
       lockStartTime = null;
+      outOfTuneStartTime = null;
       document.getElementById('lockProgress').style.width = "0%";
       document.getElementById('lockTimerText').innerText = "0.0s / 2.0s";
       sungNoteEl.innerText = "--";
