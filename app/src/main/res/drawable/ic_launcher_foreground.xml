@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Music note icon in warm golden amber -->
+    <path
+        android:fillColor="#FFB03A"
+        android:pathData="M48,34v28.55c-1.15,-0.68 -2.52,-1.05 -4,-1.05 -4.41,0 -8,3.59 -8,8s3.59,8 8,8 8,-3.59 8,-8V42h16V34H48z"/>
+</vector>
