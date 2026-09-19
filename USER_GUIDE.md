@@ -43,8 +43,18 @@ Choose the harmonic interval you want to master:
 - Tap **"🎧 Play Stereo Duet (L: Lead | R: Harmony)"** to hear both notes ring simultaneously in full stereo harmony!
 
 ### 5. Start the Microphone
-- Tap the **Microphone button** in the top right to begin live tracking.
+- Tap the **Microphone button** in the top right to begin live tracking. It pulses on initial launch to remind you to begin.
 - *(Note: While any reference tone is sounding, the app automatically mutes the microphone to prevent self-feedback from the speaker!)*
+
+### 6. Adjust Sensitivity & Tuning (Optional)
+Tap the **`⋮` (Options Menu)** in the top right and choose **Sensitivity & Tuning**:
+- **Microphone Sensitivity Slider:** 
+  - *Slide Left (Higher sensitivity / 100 RMS):* Best for soft, quiet voices or singing further back from your phone.
+  - *Slide Right (Lower sensitivity / 350 RMS):* Best for noisy rooms, air conditioning hum, or background chatter.
+- **Tuning Strictness Slider:**
+  - *Strict (±15 cents):* Demands razor-sharp studio precision.
+  - *Standard (±25 cents):* Balanced default (1/4 semitone window).
+  - *Forgiving (±35 cents):* Great for beginners building confidence holding harmonies.
 
 ---
 

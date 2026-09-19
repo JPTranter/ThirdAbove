@@ -25,6 +25,8 @@ class MicrophonePitchTracker(
     private var trackerJob: Job? = null
     private val detector = YinPitchDetector(sampleRate.toFloat(), bufferSize, threshold = 0.15f)
     var isMuted: Boolean = false
+    var rmsThreshold: Double = 200.0
+    var minClarity: Float = 0.80f
 
     private val _pitchState = MutableStateFlow(
         PitchResult(0f, "--", 0, 0f, 0f, isVoiced = false)
@@ -75,13 +77,13 @@ class MicrophonePitchTracker(
                         }
                         val rms = sqrt(sumSquares / read)
 
-                        if (rms < 250.0) { // Ambient silence gate
+                        if (rms < rmsThreshold) { // Ambient silence gate
                             _pitchState.value = PitchResult(0f, "--", 0, 0f, 0f, isVoiced = false)
                             continue
                         }
 
                         val (freq, clarity) = detector.getPitch(buffer)
-                        val pitch = MusicMath.frequencyToPitchResult(freq, clarity, minClarity = 0.82f)
+                        val pitch = MusicMath.frequencyToPitchResult(freq, clarity, minClarity = minClarity)
                         _pitchState.value = pitch
                     }
                 }

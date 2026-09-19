@@ -52,6 +52,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -145,6 +147,14 @@ fun HarmonyTrainerScreen() {
     var showMenu by remember { mutableStateOf(false) }
     var showGuideDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showSensitivityDialog by remember { mutableStateOf(false) }
+
+    var toleranceCents by remember { mutableStateOf(25f) } // 15f (Strict), 25f (Standard), 35f (Forgiving)
+    var micRmsThreshold by remember { mutableStateOf(200f) } // 100f (High sensitivity), 200f (Normal), 350f (Low/Noisy)
+
+    LaunchedEffect(micRmsThreshold) {
+        tracker.rmsThreshold = micRmsThreshold.toDouble()
+    }
 
     var selectedRange by remember { mutableStateOf(VocalRange.TENOR) }
     var selectedInterval by remember { mutableStateOf(HarmonyInterval.MAJOR_THIRD) }
@@ -167,10 +177,16 @@ fun HarmonyTrainerScreen() {
     }
 
     var lockInMs by remember { mutableStateOf(0L) }
-    val isLockedIn = remember(pitchState, rootMidi, targetMidi, isTonePlaying) {
+    val isLockedIn = remember(pitchState, rootMidi, targetMidi, isTonePlaying, toleranceCents) {
         if (!pitchState.isVoiced || isTonePlaying) false
         else {
-            val eval = HarmonyScorer.evaluate(pitchState.midiNote, pitchState.centsDeviation, rootMidi, targetMidi)
+            val eval = HarmonyScorer.evaluate(
+                userMidi = pitchState.midiNote,
+                userCents = pitchState.centsDeviation,
+                rootMidi = rootMidi,
+                targetMidi = targetMidi,
+                toleranceCents = toleranceCents
+            )
             eval.status == HarmonyStatus.IN_TUNE
         }
     }
@@ -216,7 +232,7 @@ fun HarmonyTrainerScreen() {
         }
     }
 
-    val evaluation = remember(pitchState, rootMidi, targetMidi, isTonePlaying) {
+    val evaluation = remember(pitchState, rootMidi, targetMidi, isTonePlaying, toleranceCents) {
         if (isTonePlaying) {
             HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "Playing reference tone...")
         } else if (!pitchState.isVoiced) {
@@ -226,7 +242,8 @@ fun HarmonyTrainerScreen() {
                 userMidi = pitchState.midiNote,
                 userCents = pitchState.centsDeviation,
                 rootMidi = rootMidi,
-                targetMidi = targetMidi
+                targetMidi = targetMidi,
+                toleranceCents = toleranceCents
             )
         }
     }
@@ -352,6 +369,17 @@ fun HarmonyTrainerScreen() {
                             .background(StudioCardBg)
                             .border(1.dp, StudioCardBorder, RoundedCornerShape(8.dp))
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Sensitivity & Tuning", color = SoftWhite, fontSize = 14.sp) },
+                            leadingIcon = {
+                                Icon(Icons.Default.Tune, contentDescription = null, tint = PitchInTuneGreen, modifier = Modifier.size(18.dp))
+                            },
+                            onClick = {
+                                showMenu = false
+                                showSensitivityDialog = true
+                            }
+                        )
+
                         DropdownMenuItem(
                             text = { Text("How It Works & Guide", color = SoftWhite, fontSize = 14.sp) },
                             leadingIcon = {
@@ -876,6 +904,106 @@ fun HarmonyTrainerScreen() {
             confirmButton = {
                 TextButton(onClick = { showAboutDialog = false }) {
                     Text("Close", color = ResonantTeal, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
+    // Sensitivity & Tuning Settings Dialog
+    if (showSensitivityDialog) {
+        AlertDialog(
+            onDismissRequest = { showSensitivityDialog = false },
+            containerColor = StudioCardBg,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Tune, contentDescription = null, tint = PitchInTuneGreen, modifier = Modifier.size(22.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sensitivity & Tuning", color = SoftWhite, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Section 1: Microphone Noise Gate / Pick-up Sensitivity
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Microphone Sensitivity", color = SoftWhite, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(
+                                text = when {
+                                    micRmsThreshold <= 120f -> "High (Quiet vocal)"
+                                    micRmsThreshold >= 300f -> "Low (Noisy room)"
+                                    else -> "Normal"
+                                },
+                                color = PitchInTuneGreen,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Slider(
+                            value = micRmsThreshold,
+                            onValueChange = { micRmsThreshold = it },
+                            valueRange = 80f..400f,
+                            colors = SliderDefaults.colors(
+                                thumbColor = PitchInTuneGreen,
+                                activeTrackColor = PitchInTuneGreen,
+                                inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                            )
+                        )
+
+                        Text(
+                            text = "Slide left if the app isn't picking up your voice. Slide right if room noise triggers the pitch detector.",
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp
+                        )
+                    }
+
+                    // Section 2: Tuning Strictness / Tolerance
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Tuning Strictness", color = SoftWhite, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text(
+                                text = when {
+                                    toleranceCents <= 18f -> "Strict (±${toleranceCents.toInt()}¢)"
+                                    toleranceCents >= 32f -> "Forgiving (±${toleranceCents.toInt()}¢)"
+                                    else -> "Standard (±${toleranceCents.toInt()}¢)"
+                                },
+                                color = GoldenAmber,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Slider(
+                            value = toleranceCents,
+                            onValueChange = { toleranceCents = it },
+                            valueRange = 15f..40f,
+                            steps = 4, // 15, 20, 25, 30, 35, 40
+                            colors = SliderDefaults.colors(
+                                thumbColor = GoldenAmber,
+                                activeTrackColor = GoldenAmber,
+                                inactiveTrackColor = Color.White.copy(alpha = 0.15f)
+                            )
+                        )
+
+                        Text(
+                            text = "Standard is ±25 cents (1/4 semitone). Forgiving (±35¢) makes progression easier. Strict (±15¢) demands studio precision.",
+                            color = TextMuted,
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSensitivityDialog = false }) {
+                    Text("Done", color = PitchInTuneGreen, fontWeight = FontWeight.Bold)
                 }
             }
         )

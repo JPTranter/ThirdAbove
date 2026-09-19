@@ -87,7 +87,8 @@
       <button id="micBtn" class="btn-mic pulse" title="Tap to Start Listening">🎤</button>
       <div style="position: relative;">
         <span id="moreBtn" style="color: var(--muted); font-size: 20px; cursor: pointer; padding: 4px 6px;">⋮</span>
-        <div id="moreMenu" style="display: none; position: absolute; right: 0; top: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 170px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100; overflow: hidden;">
+        <div id="moreMenu" style="display: none; position: absolute; right: 0; top: 28px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; width: 190px; box-shadow: 0 4px 16px rgba(0,0,0,0.5); z-index: 100; overflow: hidden;">
+          <div onclick="promptSensitivity()" style="padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border);">⚙️ Sensitivity & Tuning</div>
           <div onclick="alert('🎧 How It Works:\n\n1. Wear headphones: Lead note is in Left ear, Harmony target is in Right ear.\n2. Tap the mic icon to start.\n3. Hold your sung harmony steady within ±25 cents for 2 seconds to lock in and advance.\n4. If you slip out of tune for 2 seconds, the app replays both notes in duet to help you re-orient.')" style="padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border);">💡 How It Works</div>
           <div onclick="window.open('https://github.com/JPTranter/ThirdAbove', '_blank')" style="padding: 10px 14px; font-size: 13px; color: var(--text); cursor: pointer;">🌐 GitHub Project</div>
         </div>
@@ -374,7 +375,7 @@
         const rotDeg = (clampedDiff / 50) * 55;
         needle.style.transform = `rotate(${rotDeg}deg)`;
 
-        if (Math.abs(diff) <= 25) {
+        if (Math.abs(diff) <= tuningToleranceCents) {
           statusEl.innerHTML = "Locked in<br/>Harmony!";
           statusEl.style.color = "#00E676";
           needle.setAttribute('stroke', '#00E676');
@@ -434,6 +435,15 @@
     }
 
     requestAnimationFrame(processPitch);
+  }
+
+  let tuningToleranceCents = 25;
+  function promptSensitivity() {
+    const choice = prompt("Select Tuning Tolerance Strictness:\n\n1 = Strict (±15 cents)\n2 = Standard (±25 cents)\n3 = Forgiving (±35 cents)", tuningToleranceCents === 15 ? "1" : tuningToleranceCents === 35 ? "3" : "2");
+    if (choice === "1") tuningToleranceCents = 15;
+    else if (choice === "3") tuningToleranceCents = 35;
+    else if (choice === "2") tuningToleranceCents = 25;
+    alert(`Tuning tolerance set to ±${tuningToleranceCents} cents.`);
   }
 
   document.getElementById('moreBtn').addEventListener('click', (e) => {

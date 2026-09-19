@@ -64,7 +64,8 @@ object HarmonyScorer {
         userMidi: Int,
         userCents: Float,
         rootMidi: Int,
-        targetMidi: Int
+        targetMidi: Int,
+        toleranceCents: Float = 25f
     ): HarmonyEvaluation {
         if (userMidi == 0) {
             return HarmonyEvaluation(HarmonyStatus.SILENT, 0f, 0, "Sing your note...")
@@ -84,13 +85,13 @@ object HarmonyScorer {
         val totalCentsOff = (semitoneDiff * 100f) + userCents
 
         return when {
-            abs(totalCentsOff) <= 25f -> HarmonyEvaluation(
+            abs(totalCentsOff) <= toleranceCents -> HarmonyEvaluation(
                 status = HarmonyStatus.IN_TUNE,
                 centsDiff = totalCentsOff,
                 scorePercent = (100 - abs(totalCentsOff)).toInt(),
                 feedbackMessage = "Locked in harmony! ✨"
             )
-            abs(totalCentsOff) <= 45f -> HarmonyEvaluation(
+            abs(totalCentsOff) <= (toleranceCents + 20f) -> HarmonyEvaluation(
                 status = HarmonyStatus.CLOSE,
                 centsDiff = totalCentsOff,
                 scorePercent = (80 - abs(totalCentsOff)).toInt(),
