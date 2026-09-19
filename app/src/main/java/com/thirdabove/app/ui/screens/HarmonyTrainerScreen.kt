@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
@@ -486,11 +487,12 @@ fun HarmonyTrainerScreen() {
         Spacer(modifier = Modifier.height(14.dp))
 
         // Dual Cards (Lead Note & Your Harmony with waveforms and L/R labels)
+        // Dual Cards (Lead Note & Your Harmony with waveforms and L/R labels)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Lead Note Card (Amber)
+            // Lead Note Card (Amber/Gold theme matching screenshot)
             Card(
                 modifier = Modifier
                     .weight(1f)
@@ -499,12 +501,12 @@ fun HarmonyTrainerScreen() {
                             synth.playTone(MusicMath.midiToFrequency(rootMidi), 4000, pan = -1.0f)
                         }
                     },
-                colors = CardDefaults.cardColors(containerColor = StudioCardBg),
-                border = androidx.compose.foundation.BorderStroke(1.dp, GoldenAmber.copy(alpha = 0.7f)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E212B)),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, GoldenAmber),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp)
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     Text("Lead Note", fontSize = 12.sp, color = TextMuted)
                     Row(
@@ -513,36 +515,30 @@ fun HarmonyTrainerScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(rootName, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = SoftWhite)
-                        // Stylized soundwave line
-                        Canvas(modifier = Modifier.size(width = 36.dp, height = 18.dp)) {
-                            drawLine(
-                                color = GoldenAmber,
-                                start = Offset(0f, size.height * 0.5f),
-                                end = Offset(size.width * 0.4f, size.height * 0.1f),
-                                strokeWidth = 3f,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = GoldenAmber,
-                                start = Offset(size.width * 0.4f, size.height * 0.1f),
-                                end = Offset(size.width * 0.7f, size.height * 0.9f),
-                                strokeWidth = 3f,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = GoldenAmber,
-                                start = Offset(size.width * 0.7f, size.height * 0.9f),
-                                end = Offset(size.width, size.height * 0.5f),
-                                strokeWidth = 3f,
-                                cap = StrokeCap.Round
-                            )
+                        // Smooth dual harmonic sine wave matching screenshot
+                        Canvas(modifier = Modifier.size(width = 46.dp, height = 22.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            val path1 = Path()
+                            val path2 = Path()
+
+                            path1.moveTo(2f, h * 0.5f)
+                            path1.cubicTo(w * 0.25f, h * 0.05f, w * 0.4f, h * 0.95f, w * 0.65f, h * 0.45f)
+                            path1.cubicTo(w * 0.78f, h * 0.15f, w * 0.88f, h * 0.85f, w - 2f, h * 0.5f)
+
+                            path2.moveTo(2f, h * 0.55f)
+                            path2.cubicTo(w * 0.25f, h * 0.95f, w * 0.4f, h * 0.05f, w * 0.65f, h * 0.55f)
+                            path2.cubicTo(w * 0.78f, h * 0.85f, w * 0.88f, h * 0.15f, w - 2f, h * 0.55f)
+
+                            drawPath(path1, color = GoldenAmber, style = Stroke(width = 2.5f, cap = StrokeCap.Round))
+                            drawPath(path2, color = GoldenAmber.copy(alpha = 0.6f), style = Stroke(width = 1.8f, cap = StrokeCap.Round))
                         }
                     }
                     Text("Left ear", fontSize = 11.sp, color = GoldenAmber)
                 }
             }
 
-            // Your Harmony Card (Teal)
+            // Your Harmony Card (Teal theme matching screenshot)
             Card(
                 modifier = Modifier
                     .weight(1f)
@@ -551,12 +547,12 @@ fun HarmonyTrainerScreen() {
                             synth.playTone(MusicMath.midiToFrequency(targetMidi), 4000, pan = 1.0f)
                         }
                     },
-                colors = CardDefaults.cardColors(containerColor = StudioCardBg),
-                border = androidx.compose.foundation.BorderStroke(1.dp, ResonantTeal.copy(alpha = 0.7f)),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF142426)),
+                border = androidx.compose.foundation.BorderStroke(1.5.dp, ResonantTeal),
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(14.dp)
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     Text("Your Harmony", fontSize = 12.sp, color = TextMuted)
                     Row(
@@ -565,29 +561,17 @@ fun HarmonyTrainerScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(targetName, fontSize = 32.sp, fontWeight = FontWeight.Bold, color = SoftWhite)
-                        // Stylized soundwave line
-                        Canvas(modifier = Modifier.size(width = 36.dp, height = 18.dp)) {
-                            drawLine(
-                                color = ResonantTeal,
-                                start = Offset(0f, size.height * 0.5f),
-                                end = Offset(size.width * 0.35f, size.height * 0.85f),
-                                strokeWidth = 3f,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = ResonantTeal,
-                                start = Offset(size.width * 0.35f, size.height * 0.85f),
-                                end = Offset(size.width * 0.75f, size.height * 0.15f),
-                                strokeWidth = 3f,
-                                cap = StrokeCap.Round
-                            )
-                            drawLine(
-                                color = ResonantTeal,
-                                start = Offset(size.width * 0.75f, size.height * 0.15f),
-                                end = Offset(size.width, size.height * 0.5f),
-                                strokeWidth = 3f,
-                                cap = StrokeCap.Round
-                            )
+                        // Smooth resonant sine wave matching screenshot
+                        Canvas(modifier = Modifier.size(width = 46.dp, height = 22.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            val path = Path()
+
+                            path.moveTo(2f, h * 0.5f)
+                            path.cubicTo(w * 0.28f, h * 0.95f, w * 0.5f, h * 0.05f, w * 0.75f, h * 0.9f)
+                            path.cubicTo(w * 0.88f, h * 0.45f, w * 0.94f, h * 0.2f, w - 2f, h * 0.5f)
+
+                            drawPath(path, color = ResonantTeal, style = Stroke(width = 2.5f, cap = StrokeCap.Round))
                         }
                     }
                     Text("Right ear", fontSize = 11.sp, color = ResonantTeal)
@@ -595,28 +579,67 @@ fun HarmonyTrainerScreen() {
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-        // Circular Pitch Dial Gauge (Exact Match to Mockup)
+        // Circular Pitch Dial Gauge with Radiant Halo Glow Effect (Matching Screenshot)
         Box(
-            modifier = Modifier
-                .size(240.dp)
-                .clip(CircleShape)
-                .background(GaugeBg)
-                .border(
-                    width = 2.dp,
-                    brush = Brush.sweepGradient(
-                        colors = listOf(
-                            GoldenAmber,
-                            PitchInTuneGreen,
-                            ResonantTeal,
-                            GoldenAmber
-                        )
-                    ),
-                    shape = CircleShape
-                ),
+            modifier = Modifier.size(264.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Layer 1: Radiant Halo Glow Blur Rings
+            Canvas(modifier = Modifier.size(264.dp)) {
+                val center = Offset(size.width / 2f, size.height / 2f)
+                val haloRadius = size.width / 2f
+
+                // Outer soft diffuse glow
+                drawCircle(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            GoldenAmber.copy(alpha = 0.22f),
+                            PitchInTuneGreen.copy(alpha = 0.28f),
+                            ResonantTeal.copy(alpha = 0.25f),
+                            GoldenAmber.copy(alpha = 0.22f)
+                        ),
+                        center = center
+                    ),
+                    radius = haloRadius * 0.96f
+                )
+
+                // Mid vibrant aura ring
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            PitchInTuneGreen.copy(alpha = 0.18f),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = haloRadius
+                    ),
+                    radius = haloRadius * 0.90f
+                )
+            }
+
+            // Layer 2: Main Dark Circular Dial Surface
+            Box(
+                modifier = Modifier
+                    .size(236.dp)
+                    .clip(CircleShape)
+                    .background(GaugeBg)
+                    .border(
+                        width = 2.5.dp,
+                        brush = Brush.sweepGradient(
+                            colors = listOf(
+                                GoldenAmber,
+                                PitchInTuneGreen,
+                                ResonantTeal,
+                                GoldenAmber
+                            )
+                        ),
+                        shape = CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
             // Dial tick marks and needle
             val animatedCents by animateFloatAsState(
                 targetValue = evaluation.centsDiff.coerceIn(-50f, 50f),
@@ -699,6 +722,7 @@ fun HarmonyTrainerScreen() {
                 )
             }
         }
+    }
 
         Spacer(modifier = Modifier.height(16.dp))
 

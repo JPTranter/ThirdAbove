@@ -50,10 +50,10 @@
     .interval-pill.active { background: var(--coral); color: #fff; font-weight: 700; border-color: var(--coral); }
 
     .dual-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
-    .note-card { background: var(--card); border-radius: 16px; padding: 14px; cursor: pointer; transition: transform 0.1s; }
+    .note-card { background: #1E212B; border-radius: 16px; padding: 14px; cursor: pointer; transition: transform 0.1s; }
     .note-card:active { transform: scale(0.98); }
-    .card-lead { border: 1px solid rgba(255,176,58,0.7); }
-    .card-harmony { border: 1px solid rgba(0,210,180,0.7); }
+    .card-lead { border: 1.5px solid var(--amber); }
+    .card-harmony { border: 1.5px solid var(--teal); background: #142426; }
     .card-label { font-size: 12px; color: var(--muted); }
     
     .note-row { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
@@ -62,9 +62,9 @@
     .ear-lead { color: var(--amber); }
     .ear-harmony { color: var(--teal); }
 
-    /* Circular Studio Gauge matching screenshot */
-    .gauge-wrapper { display: flex; justify-content: center; margin: 8px 0; }
-    .circular-gauge { width: 230px; height: 230px; border-radius: 50%; background: var(--gauge-bg); position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid; border-image: linear-gradient(to bottom right, var(--amber), var(--green), var(--teal)) 1; border-radius: 50%; box-shadow: 0 0 24px rgba(0,230,118,0.15); }
+    /* Circular Studio Gauge with Radiant Halo Glow Effect */
+    .gauge-wrapper { display: flex; justify-content: center; margin: 12px 0; position: relative; }
+    .circular-gauge { width: 236px; height: 236px; border-radius: 50%; background: var(--gauge-bg); position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2.5px solid; border-image: linear-gradient(to bottom right, var(--amber), var(--green), var(--teal)) 1; border-radius: 50%; box-shadow: 0 0 35px rgba(0,230,118,0.28), 0 0 65px rgba(255,176,58,0.18), inset 0 0 20px rgba(0,0,0,0.6); }
     
     .sung-note { font-size: 46px; font-weight: 900; color: var(--text); margin-top: -10px; }
     .status-text { font-size: 15px; font-weight: 700; text-align: center; line-height: 1.2; margin-top: 10px; color: var(--green); }
@@ -127,8 +127,9 @@
       <div class="card-label">Lead Note</div>
       <div class="note-row">
         <div id="leadNote" class="note-val">E3</div>
-        <svg width="36" height="18" viewBox="0 0 36 18">
-          <path d="M 2 9 Q 10 0, 18 9 T 34 9" fill="none" stroke="#FFB03A" stroke-width="2.5" stroke-linecap="round"/>
+        <svg width="44" height="20" viewBox="0 0 44 20">
+          <path d="M 2 10 C 10 1, 16 19, 26 9 C 32 3, 36 17, 42 10" fill="none" stroke="#FFB03A" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M 2 11 C 10 19, 16 1, 26 11 C 32 17, 36 3, 42 11" fill="none" stroke="#FFB03A" stroke-opacity="0.5" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="card-ear ear-lead">Left ear</div>
@@ -138,8 +139,8 @@
       <div class="card-label">Your Harmony</div>
       <div class="note-row">
         <div id="targetNote" class="note-val">G#3</div>
-        <svg width="36" height="18" viewBox="0 0 36 18">
-          <path d="M 2 9 Q 10 18, 18 9 T 34 9" fill="none" stroke="#00D2B4" stroke-width="2.5" stroke-linecap="round"/>
+        <svg width="44" height="20" viewBox="0 0 44 20">
+          <path d="M 2 10 C 12 19, 22 1, 33 18 C 38 9, 41 4, 42 10" fill="none" stroke="#00D2B4" stroke-width="2.5" stroke-linecap="round"/>
         </svg>
       </div>
       <div class="card-ear ear-harmony">Right ear</div>
