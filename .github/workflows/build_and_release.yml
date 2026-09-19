@@ -1,0 +1,56 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build APK with Gradle
+        run: gradle assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThirdAbove-Debug-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0-build-${{ github.run_number }}
+          name: ThirdAbove Release v1.0.0 (Build ${{ github.run_number }})
+          body: |
+            ## ThirdAbove 🎵 — Duet & Vocal Harmony Trainer
+            
+            Download and install `app-debug.apk` directly on your Android phone!
+            
+            ### Features in this build:
+            - **Real-Time Pitch Tracking:** Vocal YIN algorithm with cents precision.
+            - **Stereo Spatial Audio:** Lead Note on Left ear 🎧 and Harmony Note on Right ear 🎧.
+            - **Tenor Vocal Range Preset:** Root melodies configured for Tenor sweet spots (no straining for high A4s).
+            - **2-Second Mastery Progression:** Auto-advances lead note when locked in for 2 seconds.
+            - **2-Second Re-orientation:** Plays stereo duet automatically if struggling for 2 seconds.
+          files: app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
