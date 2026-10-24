@@ -1,12 +1,43 @@
-title = "ThirdAbove Gitleaks Config"
+# GENERATED FILE - do not edit.
+# Written by: software-factory/tools/factory.py sync
+# Head:       software-factory/config/gitleaks.base.toml
+# Paths:      software-factory/config/repos.json, entry "ThirdAbove"
+#
+# The live trainer page carries mock strings that match the generic rules. This project is the oldest config and the weakest: review these two entries before the next release.
+
+# gitleaks - shared policy. https://github.com/gitleaks/gitleaks#configuration
+#
+# This file is the head of the generated `.gitleaks.toml` in each project. Do not
+# edit a generated file: edit this file, or the paths in `config/repos.json`, then
+# run:
+#
+#   python tools/factory.py sync --write
+#
+# Policy, the same in every project:
+#   * Use the full default rule set.
+#   * Allowlist KNOWN-SAFE content only: build trees, vendored code, generated
+#     binary data and render output. Those hold long high-entropy runs that the
+#     generic heuristics cannot tell from a credential.
+#   * Never allowlist project source. A real secret in authored code must fail.
+#   * Allowlist paths, never regexes or stopwords over content.
+#
+# The allowlist table is generated below this text from `config/repos.json`: the
+# shared entries first, then the project's own. One table only, because a second
+# `[allowlist]` table overrides the first and silently drops the shared entries.
 
 [extend]
-# Use default Gitleaks secret detection rules (AWS, GitHub, Google, Private Keys, etc.)
 useDefault = true
 
 [allowlist]
-description = "Allowed non-secret test strings or mocks"
 paths = [
+    '''\.pio/''',
+    '''/build/''',
+    '''/build-.*/''',
+    '''/output/''',
+    '''\.venv/''',
+    '''\.venv-.*/''',
+    '''node_modules/''',
+    '''third_party/''',
     '''\.gitleaks\.toml''',
     '''test_trainer_live\.html''',
 ]
