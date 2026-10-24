@@ -66,3 +66,17 @@ jobs:
           files: app/build/outputs/apk/debug/app-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  factory:
+    name: Factory gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0            # full history, so the factory's secret stage sees it all
+      - name: Factory check
+        # The shared gate: secrets, gitleaks config drift, home paths, doc links, Python
+        # compile, and the display floor. The action lives in the public software-factory repo.
+        uses: JPTranter/software-factory/.github/actions/check@main
+        with:
+          repo: ThirdAbove
